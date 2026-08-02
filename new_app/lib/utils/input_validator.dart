@@ -22,7 +22,6 @@ class InputValidator {
 
   // ── Allowed patterns ──
   static final RegExp _validName = RegExp(r'^[a-zA-Z\s.\-]+$');
-  static final RegExp _validPhone = RegExp(r'^\+?[0-9\s\-]{7,15}$');
   static final RegExp _validAmount = RegExp(r'^[0-9]+\.?[0-9]{0,2}$');
   static final RegExp _validEmail = RegExp(r'^[\w.\-]+@[\w.\-]+\.\w{2,}$');
 
