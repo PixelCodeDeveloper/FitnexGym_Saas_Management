@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Member Enrollment</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  header { background: #1e293b; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header a { color: #94a3b8; font-size: 13px; text-decoration: none; }
+  .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+  .device-row { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .device-row input { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; flex: 1; min-width: 200px; font-size: 13px; }
+  .device-row button { background: #3b82f6; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .device-row button:hover { background: #2563eb; }
+  .cleanup-btn { background: #f59e0b !important; }
+  .cleanup-btn:hover { background: #d97706 !important; }
+  .card { background: #1e293b; border-radius: 10px; overflow: hidden; border: 1px solid #334155; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #0f172a; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #64748b; }
+  td { padding: 12px 14px; border-top: 1px solid #1e293b; font-size: 13px; vertical-align: middle; }
+  tr:hover td { background: #ffffff08; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #14532d; color: #86efac; }
+  .badge-red   { background: #450a0a; color: #fca5a5; }
+  .badge-yellow{ background: #451a03; color: #fcd34d; }
+  .badge-gray  { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+  .method-btn  { padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 600; margin: 2px; }
+  .btn-face { background: #7c3aed; color: #fff; }
+  .btn-palm { background: #0891b2; color: #fff; }
+  .btn-fp   { background: #059669; color: #fff; }
+  .btn-del  { background: #dc2626; color: #fff; }
+  .method-btn:hover { opacity: .85; }
+  .method-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 12px 18px; border-radius: 8px; font-size: 13px; z-index: 100; display: none; max-width: 320px; }
+  .toast.show { display: block; }
+  .toast.ok  { border-color: #16a34a; }
+  .toast.err { border-color: #dc2626; }
+  .empty { text-align: center; padding: 40px; color: #64748b; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #334155; border-top-color: #3b82f6; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏋️ Member Enrollment</h1>
+  <a href="/">← Admin Panel</a>
+</header>
+<div class="container">
+
+  <div class="device-row">
+    <input id="deviceId" value="02017FC65CA2901E" placeholder="Device ID">
+    <button onclick="loadMembers()">Load Members</button>
+    <button class="cleanup-btn" onclick="cleanupExpired()">Remove Expired</button>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Member ID</th>
+          <th>Name</th>
+          <th>Subscription</th>
+          <th>Status</th>
+          <th>Enrolled</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="6" class="empty">Device ID daalkar "Load Members" click karo</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "";
+
+function getToken() { return localStorage.getItem("token") || "gymadmin@secret"; }
+function headers() { return { "Content-Type": "application/json", "x-api-key": getToken() }; }
+
+function showToast(msg, type = "ok") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.className = "toast", 3500);
+}
+
+function statusBadge(member) {
+  const today = new Date();
+  const end = member.end_date ? new Date(member.end_date) : null;
+  if (!end) return `<span class="badge badge-gray">No Date</span>`;
+  if (end < today) return `<span class="badge badge-red">Expired ${member.end_date}</span>`;
+  const days = Math.ceil((end - today) / 86400000);
+  if (days <= 7) return `<span class="badge badge-yellow">${days}d left</span>`;
+  return `<span class="badge badge-green">${member.end_date}</span>`;
+}
+
+async function loadMembers() {
+  const deviceId = document.getElementById("deviceId").value.trim();
+  if (!deviceId) return showToast("Device ID daalein", "err");
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = `<tr><td colspan="6" class="empty"><span class="spinner"></span>Loading…</td></tr>`;
+  try {
+    const r = await fetch(`${API}/api/enroll/members/${deviceId}`, { headers: headers() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Failed");
+    renderTable(data.members, deviceId);
+  } catch (e) { showToast(e.message, "err"); tbody.innerHTML = `<tr><td colspan="6" class="empty">${e.message}</td></tr>`; }
+}
+
+function renderTable(members, deviceId) {
+  const tbody = document.getElementById("tbody");
+  if (!members.length) { tbody.innerHTML = `<tr><td colspan="6" class="empty">Koi member nahi mila</td></tr>`; return; }
+  tbody.innerHTML = members.map(m => {
+    const enrollBadge = m.enrolled
+      ? `<span class="badge badge-green">✓ ${m.enroll_method}</span>`
+      : `<span class="badge badge-gray">Not enrolled</span>`;
+    const delBtn = m.enrolled
+      ? `<button class="method-btn btn-del" onclick="removeMember('${deviceId}','${m.member_id}')">Remove</button>`
+      : "";
+    return `<tr>
+      <td><code>${m.member_id}</code></td>
+      <td>${m.name || "—"}</td>
+      <td>${statusBadge(m)}</td>
+      <td><span class="badge ${m.status === 'active' ? 'badge-green' : 'badge-red'}">${m.status || "—"}</span></td>
+      <td>${enrollBadge}</td>
+      <td>
+        <button class="method-btn btn-face" onclick="enroll('${deviceId}','${m.member_id}','${m.name||m.member_id}','${m.end_date||''}','FACE')" ${m.enrolled?'disabled':''}>Face</button>
+        <button class="method-btn btn-palm" onclick="enroll('${deviceId}','${m.member_id}','${m.name||m.member_id}','${m.end_date||''}','PALM')" ${m.enrolled?'disabled':''}>Palm</button>
+        <button class="method-btn btn-fp"   onclick="enroll('${deviceId}','${m.member_id}','${m.name||m.member_id}','${m.end_date||''}','FP')"   ${m.enrolled?'disabled':''}>Finger</button>
+        ${delBtn}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+async function enroll(deviceId, memberId, memberName, endDate, method) {
+  if (!confirm(`${memberName} ko ${method} se enroll karna chahte ho?\n\nDevice enrollment mode mein jayega — member ko screen ke saamne scan karna hoga.`)) return;
+  showToast(`⏳ ${method} enrollment shuru ho raha hai…`);
+  try {
+    const r = await fetch(`${API}/api/enroll/start`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ device_id: deviceId, member_id: memberId, member_name: memberName, end_date: endDate, method })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    showToast(`✅ ${data.message}`, "ok");
+    setTimeout(() => loadMembers(), 4000);
+  } catch (e) { showToast(e.message, "err"); }
+}
+
+async function removeMember(deviceId, memberId) {
+  if (!confirm(`${memberId} ko device se remove karna chahte ho?`)) return;
+  try {
+    const r = await fetch(`${API}/api/enroll/${deviceId}/${encodeURIComponent(memberId)}`, {
+      method: "DELETE", headers: headers()
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    showToast(`✅ ${data.message}`, "ok");
+    loadMembers();
+  } catch (e) { showToast(e.message, "err"); }
+}
+
+async function cleanupExpired() {
+  const deviceId = document.getElementById("deviceId").value.trim();
+  if (!deviceId) return showToast("Device ID daalein", "err");
+  try {
+    const r = await fetch(`${API}/api/enroll/cleanup/${deviceId}`, { method: "POST", headers: headers() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    showToast(`✅ ${data.removed} expired members removed`, "ok");
+    loadMembers();
+  } catch (e) { showToast(e.message, "err"); }
+}
+
+// Auto load on page open
+window.addEventListener("load", loadMembers);
+</script>
+</body>
+</html>

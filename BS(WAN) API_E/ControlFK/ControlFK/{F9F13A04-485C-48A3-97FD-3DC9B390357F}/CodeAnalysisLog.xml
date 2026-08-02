@@ -1,0 +1,249 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="c:\program files (x86)\microsoft visual studio 10.0\team tools\static analysis tools\fxcop\Xml\CodeAnalysisReport.xsl"?>
+<FxCopReport Version="10.0">
+ <Targets>
+  <Target Name="C:\Users\feell\AppData\Local\Temp\tmp3CB5.tmp.cadir\bin\App_Web_umq0tcn2.dll">
+   <Modules>
+    <Module Name="app_web_umq0tcn2.dll">
+     <Namespaces>
+      <Namespace Name="">
+       <Types>
+        <Type Name="DeviceManage" Kind="Class" Accessibility="Public" ExternallyVisible="True">
+         <Members>
+          <Member Name="#GetFirmwareFileName()" Kind="Method" Static="False" Accessibility="Private" ExternallyVisible="False">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="DeviceManage.aspx.cs" Line="196">In method 'DeviceManage.GetFirmwareFileName()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="DeviceManage.aspx.cs" Line="196">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'DeviceManage.GetFirmwareFileName()' could contain the following variables 'this.mDevId'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+          <Member Name="#Timer_Watch(System.Object,System.EventArgs)" Kind="Method" Static="False" Accessibility="Family" ExternallyVisible="True">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="DeviceManage.aspx.cs" Line="254">In method 'DeviceManage.Timer_Watch(object, EventArgs)', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="DeviceManage.aspx.cs" Line="254">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'DeviceManage.Timer_Watch(object, EventArgs)' could contain the following variables 'this.mTransIdTxt.Text'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+         </Members>
+        </Type>
+        <Type Name="FKAttend" Kind="Class" Accessibility="Public" ExternallyVisible="True">
+         <Members>
+          <Member Name="#DetectDevice()" Kind="Method" Static="False" Accessibility="Public" ExternallyVisible="True">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="Default.aspx.cs" Line="57">In method 'FKAttend.DetectDevice()', call System.IDisposable.Dispose on object 'dt' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="Default.aspx.cs" Line="74">In method 'FKAttend.DetectDevice()', call System.IDisposable.Dispose on object 'dv' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="Default.aspx.cs" Line="54">In method 'FKAttend.DetectDevice()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+          <Member Name="#select_device()" Kind="Method" Static="False" Accessibility="Private" ExternallyVisible="False">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="Default.aspx.cs" Line="107">In method 'FKAttend.select_device()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Do not dispose objects multiple times" Category="Microsoft.Usage" CheckId="CA2202" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="Default.aspx.cs" Line="153">Object 'sqlReader' can be disposed more than once in method 'FKAttend.select_device()'. To avoid generating a System.ObjectDisposedException you should not call Dispose more than one time on an object.: Lines: 153</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="Default.aspx.cs" Line="107">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'FKAttend.select_device()' could contain the following variables 'this.mDeviceId'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+         </Members>
+        </Type>
+        <Type Name="LogManager" Kind="Class" Accessibility="Public" ExternallyVisible="True">
+         <Members>
+          <Member Name="#BindGridView()" Kind="Method" Static="False" Accessibility="Private" ExternallyVisible="False">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="LogManager.aspx.cs" Line="76">In method 'LogManager.BindGridView()', call System.IDisposable.Dispose on object 'da' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="LogManager.aspx.cs" Line="72">In method 'LogManager.BindGridView()', call System.IDisposable.Dispose on object 'dsLog' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="LogManager.aspx.cs" Line="60">In method 'LogManager.BindGridView()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="LogManager.aspx.cs" Line="60">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'LogManager.BindGridView()' could contain the following variables 'this.mTransIdTxt.Text'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="LogManager.aspx.cs" Line="76">The query string passed to 'SqlDataAdapter.SqlDataAdapter(string, SqlConnection)' in 'LogManager.BindGridView()' could contain the following variables 'this.mTransIdTxt.Text'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+          <Member Name="#Timer_Watch(System.Object,System.EventArgs)" Kind="Method" Static="False" Accessibility="Family" ExternallyVisible="True">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="LogManager.aspx.cs" Line="198">In method 'LogManager.Timer_Watch(object, EventArgs)', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="LogManager.aspx.cs" Line="198">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'LogManager.Timer_Watch(object, EventArgs)' could contain the following variables 'this.mTransIdTxt.Text'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+         </Members>
+        </Type>
+        <Type Name="RTEnrollView" Kind="Class" Accessibility="Public" ExternallyVisible="True">
+         <Members>
+          <Member Name="#BindGridView()" Kind="Method" Static="False" Accessibility="Private" ExternallyVisible="False">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="RTEnrollView.aspx.cs" Line="45">In method 'RTEnrollView.BindGridView()', call System.IDisposable.Dispose on object 'da' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="RTEnrollView.aspx.cs" Line="34">In method 'RTEnrollView.BindGridView()', call System.IDisposable.Dispose on object 'dsLog' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="RTEnrollView.aspx.cs" Line="45">The query string passed to 'SqlDataAdapter.SqlDataAdapter(string, SqlConnection)' in 'RTEnrollView.BindGridView()' could contain the following variables 'this.Session["run_time"]'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+         </Members>
+        </Type>
+        <Type Name="RTLogView" Kind="Class" Accessibility="Public" ExternallyVisible="True">
+         <Members>
+          <Member Name="#BindGridView()" Kind="Method" Static="False" Accessibility="Private" ExternallyVisible="False">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="RTLogView.aspx.cs" Line="55">In method 'RTLogView.BindGridView()', call System.IDisposable.Dispose on object 'da' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="RTLogView.aspx.cs" Line="44">In method 'RTLogView.BindGridView()', call System.IDisposable.Dispose on object 'dsLog' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="RTLogView.aspx.cs" Line="55">The query string passed to 'SqlDataAdapter.SqlDataAdapter(string, SqlConnection)' in 'RTLogView.BindGridView()' could contain the following variables 'this.Session["run_time"]'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+         </Members>
+        </Type>
+        <Type Name="UserManage" Kind="Class" Accessibility="Public" ExternallyVisible="True">
+         <Members>
+          <Member Name="#DisplayUserInfo()" Kind="Method" Static="False" Accessibility="Private" ExternallyVisible="False">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="313">In method 'UserManage.DisplayUserInfo()', call System.IDisposable.Dispose on object 'fs' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="209">In method 'UserManage.DisplayUserInfo()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="227">In method 'UserManage.DisplayUserInfo()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="227">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'UserManage.DisplayUserInfo()' could contain the following variables 'sqlReader.GetString(0)'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="209">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'UserManage.DisplayUserInfo()' could contain the following variables 'this.mTransIdTxt.Text'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+          <Member Name="#GetLastUserIndex()" Kind="Method" Static="False" Accessibility="Private" ExternallyVisible="False">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="595">In method 'UserManage.GetLastUserIndex()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="595">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'UserManage.GetLastUserIndex()' could contain the following variables 'this.mDevId', 'i'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+          <Member Name="#GetResult()" Kind="Method" Static="False" Accessibility="Family" ExternallyVisible="True">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="170">In method 'UserManage.GetResult()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="170">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'UserManage.GetResult()' could contain the following variables 'this.mTransIdTxt.Text'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+          <Member Name="#GetUserList()" Kind="Method" Static="False" Accessibility="Public" ExternallyVisible="True">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="62">In method 'UserManage.GetUserList()', call System.IDisposable.Dispose on object 'dt' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="78">In method 'UserManage.GetUserList()', call System.IDisposable.Dispose on object 'dv' before all references to it are out of scope.</Issue>
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="59">In method 'UserManage.GetUserList()', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="59">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'UserManage.GetUserList()' could contain the following variables 'this.Session["trans_id"]', 'this.mTransIdTxt.Text'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+          <Member Name="#Timer_Watch(System.Object,System.EventArgs)" Kind="Method" Static="False" Accessibility="Family" ExternallyVisible="True">
+           <Messages>
+            <Message TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="NonExceptionEdge" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="533">In method 'UserManage.Timer_Watch(object, EventArgs)', call System.IDisposable.Dispose on object 'sqlCmd' before all references to it are out of scope.</Issue>
+            </Message>
+            <Message TypeName="Do not dispose objects multiple times" Category="Microsoft.Usage" CheckId="CA2202" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="575">Object 'sqlReader' can be disposed more than once in method 'UserManage.Timer_Watch(object, EventArgs)'. To avoid generating a System.ObjectDisposedException you should not call Dispose more than one time on an object.: Lines: 575</Issue>
+            </Message>
+            <Message TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100" Status="Active" Created="2016-04-06 10:42:08Z" FixCategory="DependsOnFix">
+             <Issue Name="WithNonLiterals" Certainty="75" Level="Warning" Path="j:\Web\2015-11-02BS\aspnet_src\ControlFK" File="UserManage.aspx.cs" Line="533">The query string passed to 'SqlCommand.SqlCommand(string, SqlConnection)' in 'UserManage.Timer_Watch(object, EventArgs)' could contain the following variables 'this.Session["trans_id"]', 'this.mTransIdTxt.Text'. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Issue>
+            </Message>
+           </Messages>
+          </Member>
+         </Members>
+        </Type>
+       </Types>
+      </Namespace>
+     </Namespaces>
+    </Module>
+   </Modules>
+  </Target>
+ </Targets>
+ <Rules>
+  <Rule TypeName="Dispose objects before losing scope" Category="Microsoft.Reliability" CheckId="CA2000">
+   <Name>Dispose objects before losing scope</Name>
+   <Description>If a disposable object is not explicitly disposed before all references to it are out of scope, the object will be disposed at some indeterminate time when the garbage collector runs the finalizer of the object. Because an exceptional event might occur that will prevent the finalizer of the object from running, the object should be explicitly disposed instead.</Description>
+   <Resolution Name="NonExceptionEdge">In method {0}, call System.IDisposable.Dispose on object {1} before all references to it are out of scope.</Resolution>
+   <Owner>RuleOwner</Owner>
+   <Url>http://msdn.microsoft.com/library/ms182289(VS.100).aspx</Url>
+   <Email />
+   <MessageLevel Certainty="75">Warning</MessageLevel>
+   <File Name="dataflowrules.dll" Version="10.0.0.0" />
+  </Rule>
+  <Rule TypeName="Do not dispose objects multiple times" Category="Microsoft.Usage" CheckId="CA2202">
+   <Name>Do not dispose objects multiple times</Name>
+   <Description>A correctly implemented Dispose method can be called multiple times without throwing an exception. However, this is not guaranteed and to avoid generating a System.ObjectDisposedException you should not call Dispose more than one time on an object.</Description>
+   <Resolution Name="Default">Object {0} can be disposed more than once in method {1}. To avoid generating a System.ObjectDisposedException you should not call Dispose more than one time on an object.: Lines: 153</Resolution>
+   <Owner>RuleOwner</Owner>
+   <Url>http://msdn.microsoft.com/library/ms182334(VS.100).aspx</Url>
+   <Email />
+   <MessageLevel Certainty="75">Warning</MessageLevel>
+   <File Name="dataflowrules.dll" Version="10.0.0.0" />
+  </Rule>
+  <Rule TypeName="Review SQL queries for security vulnerabilities" Category="Microsoft.Security" CheckId="CA2100">
+   <Name>Review SQL queries for security vulnerabilities</Name>
+   <Description>A SQL command string built from user input is vulnerable to SQL injection attacks. Microsoft SQL Server and other database servers support stored procedures and parameterized SQL queries, which reduce the risk of injection attacks.</Description>
+   <Resolution Name="WithNonLiterals">The query string passed to {0} in {1} could contain the following variables {2}. If any of these variables could come from user input, consider using a stored procedure or a parameterized SQL query instead of building the query with string concatenations.</Resolution>
+   <Owner>RuleOwner</Owner>
+   <Url>http://msdn.microsoft.com/library/ms182310(VS.100).aspx</Url>
+   <Email />
+   <MessageLevel Certainty="75">Warning</MessageLevel>
+   <File Name="dataflowrules.dll" Version="10.0.0.0" />
+  </Rule>
+ </Rules>
+ <Localized>
+  <String Key="Category">Category</String>
+  <String Key="Certainty">Certainty</String>
+  <String Key="CollapseAll">Collapse All</String>
+  <String Key="CheckId">Check Id</String>
+  <String Key="Error">Error</String>
+  <String Key="Errors">error(s)</String>
+  <String Key="ExpandAll">Expand All</String>
+  <String Key="Help">Help</String>
+  <String Key="Line">Line</String>
+  <String Key="Messages">message(s)</String>
+  <String Key="LocationNotStoredInPdb">[Location not stored in Pdb]</String>
+  <String Key="Project">Project</String>
+  <String Key="Resolution">Resolution</String>
+  <String Key="Rule">Rule</String>
+  <String Key="RuleFile">Rule File</String>
+  <String Key="RuleDescription">Rule Description</String>
+  <String Key="Source">Source</String>
+  <String Key="Status">Status</String>
+  <String Key="Target">Target</String>
+  <String Key="Warning">Warning</String>
+  <String Key="Warnings">warning(s)</String>
+  <String Key="ReportTitle">Code Analysis Report</String>
+ </Localized>
+ <Exceptions>
+  <Exception Keyword="CA0055" Kind="AssemblyLoad">
+   <Type>Microsoft.FxCop.Common.AssemblyLoadException</Type>
+   <ExceptionMessage>Conflicting target platforms 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' vs 'mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.</ExceptionMessage>
+  </Exception>
+ </Exceptions>
+</FxCopReport>
