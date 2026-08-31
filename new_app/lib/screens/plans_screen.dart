@@ -17,36 +17,6 @@ class _PlansScreenState extends State<PlansScreen> {
   bool _isLoading = true;
   List<SubscriptionPlan> _plans = [];
 
-  final List<SubscriptionPlan> _fallbackPlans = [
-    SubscriptionPlan(
-      id: 'p1',
-      gymId: 'g1',
-      name: '1 Month Basic Plan',
-      durationDays: 30,
-      price: 1500.0,
-      description: 'Basic gym floor access.',
-      createdAt: DateTime.now(),
-    ),
-    SubscriptionPlan(
-      id: 'p2',
-      gymId: 'g1',
-      name: '3 Months Standard Plan',
-      durationDays: 90,
-      price: 4000.0,
-      description: 'Save ₹500. Most Popular.',
-      createdAt: DateTime.now(),
-    ),
-    SubscriptionPlan(
-      id: 'p3',
-      gymId: 'g1',
-      name: '1 Year Pro Annual',
-      durationDays: 365,
-      price: 12000.0,
-      description: '1 Month Free + Personal Trainer guidance.',
-      createdAt: DateTime.now(),
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -58,11 +28,11 @@ class _PlansScreenState extends State<PlansScreen> {
     try {
       final list = await DbService.getPlans();
       setState(() {
-        _plans = list.isEmpty ? _fallbackPlans : list;
+        _plans = list;
       });
     } catch (_) {
       setState(() {
-        _plans = _fallbackPlans;
+        _plans = [];
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);

@@ -23,39 +23,6 @@ class _MembersScreenState extends State<MembersScreen> {
   bool _isLoading = true;
   List<Member> _members = [];
 
-  final List<Member> _fallbackMembers = [
-    Member(
-      id: 'm1',
-      gymId: 'g1',
-      name: 'Rahul Verma',
-      phone: '9876543210',
-      subscriptionStart: DateTime.now().subtract(const Duration(days: 60)),
-      subscriptionEnd: DateTime.now().add(const Duration(days: 30)),
-      amountPaid: 4500.0,
-      createdAt: DateTime.now(),
-    ),
-    Member(
-      id: 'm2',
-      gymId: 'g1',
-      name: 'Vikram Singh',
-      phone: '8765432109',
-      subscriptionStart: DateTime.now().subtract(const Duration(days: 25)),
-      subscriptionEnd: DateTime.now().add(const Duration(days: 5)),
-      amountPaid: 1800.0,
-      createdAt: DateTime.now(),
-    ),
-    Member(
-      id: 'm3',
-      gymId: 'g1',
-      name: 'Neha Sharma',
-      phone: '7654321098',
-      subscriptionStart: DateTime.now().subtract(const Duration(days: 40)),
-      subscriptionEnd: DateTime.now().subtract(const Duration(days: 10)),
-      amountPaid: 1800.0,
-      createdAt: DateTime.now(),
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -67,11 +34,11 @@ class _MembersScreenState extends State<MembersScreen> {
     try {
       final list = await DbService.getMembers();
       setState(() {
-        _members = list.isEmpty ? _fallbackMembers : list;
+        _members = list;
       });
     } catch (_) {
       setState(() {
-        _members = _fallbackMembers;
+        _members = [];
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -185,7 +152,24 @@ class _MembersScreenState extends State<MembersScreen> {
           ),
         ],
       ),
+  Future<void> _sendTwilioSMS(Member member) async {
+    final msg = 'Hi ${member.name}, your Fitnex GYM membership expires on ${DateFormat('dd MMM yyyy').format(member.subscriptionEnd)}. Please renew to continue workout!';
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sending Twilio SMS... 📲')),
     );
+    final success = await DbService.sendTwilioNotification(
+      phone: member.phone,
+      message: msg,
+      type: 'sms',
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Twilio SMS Sent to ${member.name}! 🚀' : 'SMS Delivery Failed'),
+          backgroundColor: success ? AppTheme.success : AppTheme.error,
+        ),
+      );
+    }
   }
 
   @override
@@ -374,6 +358,13 @@ class _MembersScreenState extends State<MembersScreen> {
                                           style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                                         ),
                                         const Spacer(),
+                                        _ActionChip(
+                                          icon: Icons.sms_outlined,
+                                          label: 'Twilio SMS',
+                                          color: AppTheme.accent,
+                                          onTap: () => _sendTwilioSMS(m),
+                                        ),
+                                        const SizedBox(width: 8),
                                         _ActionChip(
                                           icon: Icons.chat_bubble_outline,
                                           label: 'WhatsApp',

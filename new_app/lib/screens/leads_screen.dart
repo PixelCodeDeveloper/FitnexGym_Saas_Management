@@ -20,39 +20,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
   bool _isLoading = true;
   List<Lead> _leads = [];
 
-  final List<Lead> _fallbackLeads = [
-    Lead(
-      id: 'l1',
-      gymId: 'g1',
-      name: 'Sanjay Yadav',
-      phone: '9123456780',
-      note: 'Interested in 3-month plan',
-      status: LeadStatus.hot,
-      followUpDate: DateTime.now().add(const Duration(days: 1)),
-      createdAt: DateTime.now(),
-    ),
-    Lead(
-      id: 'l2',
-      gymId: 'g1',
-      name: 'Pooja Tiwari',
-      phone: '8123456789',
-      note: 'Asked about personal training',
-      status: LeadStatus.warm,
-      followUpDate: DateTime.now().add(const Duration(days: 3)),
-      createdAt: DateTime.now(),
-    ),
-    Lead(
-      id: 'l3',
-      gymId: 'g1',
-      name: 'Arun Sharma',
-      phone: '7123456789',
-      note: 'Will come after vacation',
-      status: LeadStatus.cold,
-      followUpDate: DateTime.now().add(const Duration(days: 7)),
-      createdAt: DateTime.now(),
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -64,11 +31,11 @@ class _LeadsScreenState extends State<LeadsScreen> {
     try {
       final list = await DbService.getLeads();
       setState(() {
-        _leads = list.isEmpty ? _fallbackLeads : list;
+        _leads = list;
       });
     } catch (_) {
       setState(() {
-        _leads = _fallbackLeads;
+        _leads = [];
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);

@@ -1,8 +1,135 @@
 import 'package:flutter/material.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../services/auth_service.dart';
+import '../services/db_service.dart';
 import '../theme/app_theme.dart';
 
-class PaywallScreen extends StatelessWidget {
+class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key});
+
+  @override
+  State<PaywallScreen> createState() => _PaywallScreenState();
+}
+
+class _PaywallScreenState extends State<PaywallScreen> {
+  late Razorpay _razorpay;
+  bool _isLoading = false;
+  String? _pendingOrderId;
+
+  @override
+  void initState() {
+    super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  Future<void> _startPayment() async {
+    setState(() => _isLoading = true);
+    try {
+      final userEmail = await AuthService.userEmail ?? 'owner@fitnexgym.com';
+      final orderData = await DbService.createRazorpayOrder();
+
+      final orderId = orderData['orderId'] as String;
+      final keyId = orderData['keyId'] as String? ?? 'rzp_test_mock_key_id';
+      final amount = orderData['amount'] as int? ?? 99900;
+
+      _pendingOrderId = orderId;
+
+      final options = {
+        'key': keyId,
+        'amount': amount,
+        'name': 'FitnexGym SaaS Pro',
+        'description': 'Monthly Pro Plan Subscription (30 Days)',
+        'order_id': orderId.startsWith('order_demo') ? null : orderId,
+        'prefill': {
+          'email': userEmail,
+          'contact': '9999999999',
+        },
+        'theme': {
+          'color': '#00A8B5',
+        },
+      };
+
+      _razorpay.open(options);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initiate payment: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    setState(() => _isLoading = true);
+    try {
+      final success = await DbService.verifyRazorpayPayment(
+        orderId: response.orderId ?? _pendingOrderId ?? 'order_demo',
+        paymentId: response.paymentId ?? 'pay_demo',
+        signature: response.signature ?? 'sig_demo',
+      );
+
+      if (mounted && success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment Successful! Subscription Unlocked 🎉'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Verification error: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment Failed: ${response.message} (Code: ${response.code})'),
+        backgroundColor: AppTheme.error,
+      ),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('External Wallet Selected: ${response.walletName}'),
+      ),
+    );
+  }
+
+  Future<void> _handleSignOut() async {
+    await AuthService.signOut();
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +143,7 @@ class PaywallScreen extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppTheme.errorBg,
                   shape: BoxShape.circle,
                 ),
@@ -82,7 +209,7 @@ class PaywallScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Column(
@@ -101,7 +228,7 @@ class PaywallScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: _isLoading ? null : _startPayment,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppTheme.primary,
@@ -111,7 +238,16 @@ class PaywallScreen extends StatelessWidget {
                             fontSize: 16,
                           ),
                         ),
-                        child: const Text('Renew Now →'),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppTheme.primary,
+                                ),
+                              )
+                            : const Text('Renew Now →'),
                       ),
                     ),
                   ],
@@ -119,7 +255,7 @@ class PaywallScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               TextButton(
-                onPressed: () {},
+                onPressed: _handleSignOut,
                 child: const Text(
                   'Sign Out',
                   style: TextStyle(color: AppTheme.textMuted),

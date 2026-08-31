@@ -13,12 +13,13 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
-  int _totalMembers = 45;
-  int _activeCount = 38;
-  int _expiringCount = 4;
-  int _expiredCount = 3;
-  int _hotLeadsCount = 5;
-  double _monthlyRevenue = 54000.0;
+  int _totalMembers = 0;
+  int _activeCount = 0;
+  int _expiringCount = 0;
+  int _expiredCount = 0;
+  int _hotLeadsCount = 0;
+  double _monthlyRevenue = 0.0;
+  List<dynamic> _recentPayments = [];
 
   @override
   void initState() {
@@ -32,31 +33,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final members = await DbService.getMembers();
       final leads = await DbService.getLeads();
       final rev = await DbService.getMonthlyRevenue();
+      final payments = await DbService.getPayments();
 
-      if (members.isNotEmpty) {
-        int act = 0;
-        int expSoon = 0;
-        int exp = 0;
-        for (final m in members) {
-          if (m.status == MemberStatus.active) act++;
-          if (m.status == MemberStatus.expiringSoon) expSoon++;
-          if (m.status == MemberStatus.expired) exp++;
-        }
+      int act = 0;
+      int expSoon = 0;
+      int exp = 0;
+      for (final m in members) {
+        if (m.status == MemberStatus.active) act++;
+        if (m.status == MemberStatus.expiringSoon) expSoon++;
+        if (m.status == MemberStatus.expired) exp++;
+      }
+
+      setState(() {
         _totalMembers = members.length;
         _activeCount = act;
         _expiringCount = expSoon;
         _expiredCount = exp;
-      }
-
-      if (leads.isNotEmpty) {
         _hotLeadsCount = leads.where((l) => l.status == LeadStatus.hot).length;
-      }
-
-      if (rev > 0) {
         _monthlyRevenue = rev;
-      }
+        _recentPayments = payments.take(5).toList();
+      });
     } catch (_) {
-      // Keep initial stats on fallback
+      setState(() {
+        _totalMembers = 0;
+        _activeCount = 0;
+        _expiringCount = 0;
+        _expiredCount = 0;
+        _hotLeadsCount = 0;
+        _monthlyRevenue = 0.0;
+        _recentPayments = [];
+      });
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -93,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Good Morning 👋',
+                                    'Welcome Back 👋',
                                     style: TextStyle(
                                       color: Colors.white70,
                                       fontSize: 14,
@@ -101,7 +107,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    'Gym Owner',
+                                    'Gym Dashboard',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 24,
@@ -117,7 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: const Row(
@@ -146,14 +152,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 _QuickStat(label: 'Members', value: '$_totalMembers'),
-                                _QuickStat(label: 'Revenue', value: '₹${(_monthlyRevenue / 1000).toStringAsFixed(1)}k'),
+                                _QuickStat(label: 'Revenue', value: '₹${_monthlyRevenue.toStringAsFixed(0)}'),
                                 _QuickStat(label: 'Expiring Soon', value: '$_expiringCount'),
                               ],
                             ),
@@ -220,7 +226,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Live Recent Activity',
+                          'Recent Transactions',
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
@@ -230,21 +236,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildActivityTile(
-                      'Rahul Verma',
-                      '3 Month Renewal • ₹4,500',
-                      'Today',
-                      Icons.arrow_downward_rounded,
-                      AppTheme.success,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildActivityTile(
-                      'Vikram Singh',
-                      '1 Month Plan • ₹1,800',
-                      'Yesterday',
-                      Icons.arrow_downward_rounded,
-                      AppTheme.success,
-                    ),
+                    if (_recentPayments.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.divider),
+                        ),
+                        child: const Column(
+                          children: [
+                            Icon(Icons.receipt_long_outlined, size: 36, color: AppTheme.textMuted),
+                            SizedBox(height: 8),
+                            Text(
+                              'No transactions recorded yet',
+                              style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ..._recentPayments.map((p) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: _buildActivityTile(
+                              p.memberName ?? 'Member',
+                              '${p.planName ?? 'Payment'} • ₹${p.amount.toStringAsFixed(0)}',
+                              'Recently',
+                              Icons.arrow_downward_rounded,
+                              AppTheme.success,
+                            ),
+                          )),
                   ],
                 ),
               ),

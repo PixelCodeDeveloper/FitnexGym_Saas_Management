@@ -18,39 +18,6 @@ class _DietScreenState extends State<DietScreen> {
   bool _isLoading = true;
   List<DietPlan> _plans = [];
 
-  final List<DietPlan> _fallbackPlans = [
-    DietPlan(
-      id: 'd1',
-      gymId: 'g1',
-      title: 'Weight Loss Plan (Lacto-Veg)',
-      type: 'veg',
-      calories: '1500 kcal',
-      items: [
-        'Breakfast: Oats + Almond Milk + Chia Seeds',
-        'Mid-Morning: Apple + Green Tea',
-        'Lunch: Brown Rice + Dal + Mixed Veg Sabzi',
-        'Evening: Roasted Makhana',
-        'Dinner: Paneer Salad + Cucumber Soup',
-      ],
-      createdAt: DateTime.now(),
-    ),
-    DietPlan(
-      id: 'd2',
-      gymId: 'g1',
-      title: 'Muscle Mass Building (High Protein)',
-      type: 'nonveg',
-      calories: '2800 kcal',
-      items: [
-        'Breakfast: 5 Whole Eggs + Peanut Butter Toast',
-        'Mid-Morning: Whey Protein Shake + Banana',
-        'Lunch: Grilled Chicken Breast + Rice + Broccoli',
-        'Pre-Workout: Black Coffee + Rice Cakes',
-        'Dinner: Fish Fillet + Sweet Potato + Salad',
-      ],
-      createdAt: DateTime.now(),
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -62,11 +29,11 @@ class _DietScreenState extends State<DietScreen> {
     try {
       final list = await DbService.getDietPlans();
       setState(() {
-        _plans = list.isEmpty ? _fallbackPlans : list;
+        _plans = list;
       });
     } catch (_) {
       setState(() {
-        _plans = _fallbackPlans;
+        _plans = [];
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);

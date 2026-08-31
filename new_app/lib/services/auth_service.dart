@@ -21,13 +21,16 @@ class AuthService {
   static Future<bool> get isAuthenticated async => (await accessToken) != null;
   static Future<String?> get currentUserId => _storage.read(key: _userIdKey);
   static Future<String?> get userEmail async {
+    final stored = await _storage.read(key: _emailKey);
+    if (stored != null && stored.isNotEmpty) {
+      return stored;
+    }
     final googleUser = GoogleSignIn().currentUser;
     if (googleUser != null && googleUser.email.isNotEmpty) {
       await _storage.write(key: _emailKey, value: googleUser.email);
       return googleUser.email;
     }
-    final stored = await _storage.read(key: _emailKey);
-    return stored;
+    return null;
   }
 
   static Future<AuthSession?> get currentUser async {
@@ -59,7 +62,8 @@ class AuthService {
     final email = (account?.email != null && account!.email.isNotEmpty)
         ? account.email
         : 'gymowner.google@gmail.com';
-    final googleSubject = account?.id ?? 'google_user_${DateTime.now().millisecondsSinceEpoch}';
+    final googleSubject = account?.id ??
+        'google_sub_${email.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
 
     try {
       final data = await ApiClient.post('/v1/auth/google', {
