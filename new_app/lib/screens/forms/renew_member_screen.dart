@@ -30,11 +30,11 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
-      final amt = double.tryParse(_amountController.text) ?? 1800.0;
+      final amt       = double.tryParse(_amountController.text) ?? 1800.0;
       final baseStart = widget.member.subscriptionEnd.isBefore(DateTime.now())
           ? DateTime.now()
           : widget.member.subscriptionEnd;
-      final newEnd = DateTime(baseStart.year, baseStart.month + _months, baseStart.day);
+      final newEnd    = DateTime(baseStart.year, baseStart.month + _months, baseStart.day);
 
       final updated = Member(
         id: widget.member.id,
@@ -85,13 +85,25 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isExpired = widget.member.subscriptionEnd.isBefore(DateTime.now());
+    final isDark    = Theme.of(context).brightness == Brightness.dark;
+    final bgColor   = isDark ? AppTheme.darkBg          : AppTheme.lightBg;
+    final cardBg    = isDark ? AppTheme.darkCard         : AppTheme.lightSurface;
+    final inputFill = isDark ? AppTheme.darkSurfaceAlt   : AppTheme.lightSurfaceAlt;
+    final border    = isDark ? AppTheme.darkBorder       : AppTheme.lightBorder;
+    final txt       = isDark ? AppTheme.darkTextPrimary  : AppTheme.lightTextPrimary;
+    final txt2      = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
+    final barBg     = isDark ? AppTheme.darkSurface      : AppTheme.lightSurface;
+
+    final isExpired    = widget.member.subscriptionEnd.isBefore(DateTime.now());
     final expFormatted = DateFormat('dd MMM yyyy').format(widget.member.subscriptionEnd);
+    final initials     = widget.member.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Renew Membership'),
+        backgroundColor: barBg,
+        title: Text('Renew Membership', style: TextStyle(color: txt, fontWeight: FontWeight.w700)),
+        iconTheme: IconThemeData(color: txt),
         centerTitle: false,
         elevation: 0,
       ),
@@ -106,33 +118,28 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Member Overview Banner Card ──
+                      // ── Member Banner ──
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           gradient: AppTheme.primaryGradient,
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primary.withValues(alpha: 0.25),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
+                          boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.25), blurRadius: 15, offset: const Offset(0, 8))],
                         ),
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 28,
-                              backgroundColor: Colors.white,
-                              child: Text(
-                                widget.member.name.isNotEmpty
-                                    ? widget.member.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join()
-                                    : 'M',
-                                style: const TextStyle(
-                                  color: AppTheme.primary,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18,
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  initials.isEmpty ? 'M' : initials,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
                                 ),
                               ),
                             ),
@@ -141,20 +148,10 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    widget.member.name,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
+                                  Text(widget.member.name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    '+91 ${widget.member.phone}',
-                                    style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                  ),
-                                  const SizedBox(height: 6),
+                                  Text('+91 ${widget.member.phone}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                                  const SizedBox(height: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
@@ -162,12 +159,8 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      isExpired ? 'EXPIRED on $expFormatted' : 'Expires on $expFormatted',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                      isExpired ? '⚠️ EXPIRED on $expFormatted' : '✅ Expires $expFormatted',
+                                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
                                     ),
                                   ),
                                 ],
@@ -179,64 +172,60 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
 
                       const SizedBox(height: 24),
 
-                      // ── Renewal Options Card ──
-                      _buildSectionHeader('Renewal Extension', Icons.autorenew_rounded),
+                      // ── Renewal Card ──
+                      _sectionHeader('Renewal Extension', Icons.autorenew_rounded, txt),
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cardBg,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppTheme.divider),
+                          border: Border.all(color: border),
+                          boxShadow: isDark ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
                         ),
-                        child: Column(
-                          children: [
-                            DropdownButtonFormField<int>(
-                              value: _months,
-                              decoration: InputDecoration(
-                                labelText: 'Renewal Duration',
-                                prefixIcon: const Icon(Icons.history_rounded, color: AppTheme.primary),
-                                filled: true,
-                                fillColor: AppTheme.background,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                              items: const [
-                                DropdownMenuItem(value: 1, child: Text('1 Month Extension (₹1,800)')),
-                                DropdownMenuItem(value: 3, child: Text('3 Months Extension (₹5,400)')),
-                                DropdownMenuItem(value: 6, child: Text('6 Months Extension (₹10,800)')),
-                                DropdownMenuItem(value: 12, child: Text('1 Year Extension (₹21,600)')),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() {
-                                    _months = val;
-                                    _amountController.text = (val * 1800).toString();
-                                  });
-                                }
-                              },
+                        child: Column(children: [
+                          DropdownButtonFormField<int>(
+                            value: _months,
+                            dropdownColor: cardBg,
+                            style: TextStyle(color: txt, fontWeight: FontWeight.w500, fontSize: 14),
+                            decoration: _fieldDec(
+                              label: 'Renewal Duration',
+                              icon: Icons.history_rounded,
+                              iconColor: AppTheme.primary,
+                              fillColor: inputFill,
+                              hintColor: txt2,
                             ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _amountController,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                              decoration: InputDecoration(
-                                labelText: 'Renewal Fee Collected (₹)',
-                                prefixText: '₹ ',
-                                prefixIcon: const Icon(Icons.payments_rounded, color: AppTheme.success),
-                                filled: true,
-                                fillColor: AppTheme.background,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
+                            items: [
+                              DropdownMenuItem(value: 1,  child: Text('1 Month Extension (₹1,800)',   style: TextStyle(color: txt))),
+                              DropdownMenuItem(value: 3,  child: Text('3 Months Extension (₹5,400)',  style: TextStyle(color: txt))),
+                              DropdownMenuItem(value: 6,  child: Text('6 Months Extension (₹10,800)', style: TextStyle(color: txt))),
+                              DropdownMenuItem(value: 12, child: Text('1 Year Extension (₹21,600)',   style: TextStyle(color: txt))),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _months = val;
+                                  _amountController.text = (val * 1800).toString();
+                                });
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _amountController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            style: TextStyle(color: txt),
+                            decoration: _fieldDec(
+                              label: 'Renewal Fee Collected (₹)',
+                              prefix: '₹ ',
+                              icon: Icons.payments_rounded,
+                              iconColor: AppTheme.success,
+                              fillColor: inputFill,
+                              hintColor: txt2,
                             ),
-                          ],
-                        ),
+                          ),
+                        ]),
                       ),
                     ],
                   ),
@@ -244,38 +233,27 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
               ),
             ),
 
-            // ── Sticky Bottom Action Bar ──
+            // ── Sticky Bottom Bar ──
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
+                color: barBg,
+                border: Border(top: BorderSide(color: border)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06), blurRadius: 10, offset: const Offset(0, -4))],
               ),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: AppTheme.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
                   ),
                   child: _isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text(
-                          'Confirm Membership Renewal',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-                        ),
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Confirm Renewal', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
                 ),
               ),
             ),
@@ -285,20 +263,29 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: AppTheme.primary),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-      ],
+  Widget _sectionHeader(String title, IconData icon, Color txt) => Row(
+    children: [
+      Icon(icon, size: 20, color: AppTheme.primary),
+      const SizedBox(width: 8),
+      Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: txt)),
+    ],
+  );
+
+  InputDecoration _fieldDec({
+    String? label, String? prefix,
+    IconData? icon, Color? iconColor,
+    required Color fillColor, required Color hintColor,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixText: prefix,
+      prefixIcon: icon != null ? Icon(icon, color: iconColor ?? AppTheme.primary) : null,
+      filled: true,
+      fillColor: fillColor,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.primary, width: 2)),
+      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.error)),
     );
   }
 }
