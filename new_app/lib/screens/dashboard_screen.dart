@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/member.dart';
 import '../models/lead.dart';
 import '../services/db_service.dart';
@@ -30,379 +31,423 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
     try {
-      final members = await DbService.getMembers();
-      final leads = await DbService.getLeads();
-      final rev = await DbService.getMonthlyRevenue();
+      final members  = await DbService.getMembers();
+      final leads    = await DbService.getLeads();
+      final rev      = await DbService.getMonthlyRevenue();
       final payments = await DbService.getPayments();
 
-      int act = 0;
-      int expSoon = 0;
-      int exp = 0;
+      int act = 0, expSoon = 0, exp = 0;
       for (final m in members) {
-        if (m.status == MemberStatus.active) act++;
+        if (m.status == MemberStatus.active)      act++;
         if (m.status == MemberStatus.expiringSoon) expSoon++;
-        if (m.status == MemberStatus.expired) exp++;
+        if (m.status == MemberStatus.expired)      exp++;
       }
-
       setState(() {
-        _totalMembers = members.length;
-        _activeCount = act;
-        _expiringCount = expSoon;
-        _expiredCount = exp;
-        _hotLeadsCount = leads.where((l) => l.status == LeadStatus.hot).length;
+        _totalMembers   = members.length;
+        _activeCount    = act;
+        _expiringCount  = expSoon;
+        _expiredCount   = exp;
+        _hotLeadsCount  = leads.where((l) => l.status == LeadStatus.hot).length;
         _monthlyRevenue = rev;
         _recentPayments = payments.take(5).toList();
+        _isLoading      = false;
       });
     } catch (_) {
-      setState(() {
-        _totalMembers = 0;
-        _activeCount = 0;
-        _expiringCount = 0;
-        _expiredCount = 0;
-        _hotLeadsCount = 0;
-        _monthlyRevenue = 0.0;
-        _recentPayments = [];
-      });
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor  = isDark ? AppTheme.darkBg        : AppTheme.lightBg;
+    final cardBg   = isDark ? AppTheme.darkCard       : AppTheme.lightSurface;
+    final border   = isDark ? AppTheme.darkBorder     : AppTheme.lightBorder;
+    final txt      = isDark ? AppTheme.darkTextPrimary: AppTheme.lightTextPrimary;
+    final txt2     = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
+    final muted    = isDark ? AppTheme.darkTextMuted  : AppTheme.lightTextMuted;
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: bgColor,
+        body: const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2)),
+      );
+    }
+
     return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadDashboardData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20.0),
+      backgroundColor: bgColor,
+      body: RefreshIndicator(
+        color: AppTheme.primary,
+        backgroundColor: cardBg,
+        onRefresh: _loadDashboardData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Hero Banner ──
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: isDark ? 0.35 : 0.2),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Welcome Banner with Gradient ──
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Welcome Back 👋',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Gym Dashboard',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.circle,
-                                      color: AppTheme.success,
-                                      size: 8,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Live VPS Active',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _QuickStat(label: 'Members', value: '$_totalMembers'),
-                                _QuickStat(label: 'Revenue', value: '₹${_monthlyRevenue.toStringAsFixed(0)}'),
-                                _QuickStat(label: 'Expiring Soon', value: '$_expiringCount'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // ── 4 KPI Cards in 2x2 Grid ──
                     Row(
-                      children: [
-                        Expanded(
-                          child: _buildKPICard(
-                            'Active',
-                            '$_activeCount',
-                            Icons.people_alt_rounded,
-                            AppTheme.success,
-                            AppTheme.successBg,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildKPICard(
-                            'Expiring',
-                            '$_expiringCount',
-                            Icons.timer_outlined,
-                            AppTheme.warning,
-                            AppTheme.warningBg,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildKPICard(
-                            'Expired',
-                            '$_expiredCount',
-                            Icons.cancel_outlined,
-                            AppTheme.error,
-                            AppTheme.errorBg,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildKPICard(
-                            'Hot Leads',
-                            '$_hotLeadsCount',
-                            Icons.local_fire_department_rounded,
-                            AppTheme.accent,
-                            const Color(0xFFFFF7ED),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // ── Recent Activity ──
-                    const Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Recent Transactions',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (_recentPayments.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.divider),
-                        ),
-                        child: const Column(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.receipt_long_outlined, size: 36, color: AppTheme.textMuted),
-                            SizedBox(height: 8),
                             Text(
-                              'No transactions recorded yet',
-                              style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                              'Welcome Back 👋',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'FitnexGym',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
-                      )
-                    else
-                      ..._recentPayments.map((p) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: _buildActivityTile(
-                              p.memberName ?? 'Member',
-                              '${p.planName ?? 'Payment'} • ₹${p.amount.toStringAsFixed(0)}',
-                              'Recently',
-                              Icons.arrow_downward_rounded,
-                              AppTheme.success,
-                            ),
-                          )),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.circle, color: AppTheme.success, size: 7),
+                              SizedBox(width: 6),
+                              Text(
+                                'Live VPS Active',
+                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Mini stats bar
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _heroStat('Total', '$_totalMembers', Icons.people_alt_rounded),
+                          _heroDivider(),
+                          _heroStat('Revenue', '₹${_fmt(_monthlyRevenue)}', Icons.currency_rupee_rounded),
+                          _heroDivider(),
+                          _heroStat('Expiring', '$_expiringCount', Icons.timer_outlined),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
+
+              const SizedBox(height: 24),
+
+              // ── Section label ──
+              _sectionLabel('Overview', txt),
+              const SizedBox(height: 12),
+
+              // ── KPI Cards 2x2 ──
+              Row(children: [
+                Expanded(child: _kpiCard('Active Members', '$_activeCount', Icons.people_alt_rounded,
+                    AppTheme.success, AppTheme.successBg, cardBg, border, txt, txt2, isDark)),
+                const SizedBox(width: 12),
+                Expanded(child: _kpiCard('Expiring Soon', '$_expiringCount', Icons.timer_outlined,
+                    AppTheme.warning, AppTheme.warningBg, cardBg, border, txt, txt2, isDark)),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: _kpiCard('Expired', '$_expiredCount', Icons.cancel_outlined,
+                    AppTheme.error, AppTheme.errorBg, cardBg, border, txt, txt2, isDark)),
+                const SizedBox(width: 12),
+                Expanded(child: _kpiCard('Hot Leads', '$_hotLeadsCount', Icons.local_fire_department_rounded,
+                    AppTheme.accent, const Color(0xFFFFF0E8), cardBg, border, txt, txt2, isDark)),
+              ]),
+
+              const SizedBox(height: 28),
+
+              // ── Revenue highlight ──
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: isDark ? AppTheme.darkCardGradient : null,
+                  color: isDark ? null : AppTheme.lightSurface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isDark ? AppTheme.primary.withValues(alpha: 0.25) : border),
+                  boxShadow: isDark ? [BoxShadow(
+                    color: AppTheme.primary.withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  )] : null,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.currency_rupee_rounded, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Monthly Revenue', style: TextStyle(color: txt2, fontSize: 13, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 4),
+                        Text(
+                          '₹${_fmt(_monthlyRevenue)}',
+                          style: TextStyle(
+                            color: txt,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // ── Recent Transactions ──
+              _sectionLabel('Recent Transactions', txt),
+              const SizedBox(height: 12),
+
+              if (_recentPayments.isEmpty)
+                _emptyState(
+                  Icons.receipt_long_outlined,
+                  'No transactions yet',
+                  'Payments will appear here after members are added.',
+                  cardBg, border, txt, muted,
+                )
+              else
+                ...List.generate(_recentPayments.length, (i) {
+                  final p = _recentPayments[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _transactionTile(
+                      p.memberName ?? 'Member',
+                      p.planName ?? 'Payment',
+                      p.amount,
+                      cardBg, border, txt, txt2, muted, isDark,
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildKPICard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-    Color bgColor,
+  Widget _heroStat(String label, String value, IconData icon) => Column(
+    children: [
+      Icon(icon, color: Colors.white70, size: 18),
+      const SizedBox(height: 6),
+      Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 2),
+      Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
+    ],
+  );
+
+  Widget _heroDivider() => Container(
+    height: 40,
+    width: 1,
+    color: Colors.white.withValues(alpha: 0.2),
+  );
+
+  Widget _sectionLabel(String text, Color txtColor) => Text(
+    text,
+    style: TextStyle(
+      color: txtColor,
+      fontSize: 17,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.3,
+    ),
+  );
+
+  Widget _kpiCard(
+    String title, String value, IconData icon, Color accent,
+    Color lightBg, Color cardBg, Color border, Color txt, Color txt2,
+    bool isDark,
   ) {
+    final iconBg = isDark ? accent.withValues(alpha: 0.15) : lightBg;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.divider),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? AppTheme.darkBorder : border),
+        boxShadow: isDark ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(10),
+              color: iconBg,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(icon, color: accent, size: 22),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 26,
+            style: TextStyle(
+              fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
+              color: txt,
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text(title, style: TextStyle(fontSize: 13, color: txt2, fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  Widget _buildActivityTile(
-    String name,
-    String subtitle,
-    String time,
-    IconData icon,
-    Color color,
+  Widget _transactionTile(
+    String name, String plan, double amount,
+    Color cardBg, Color border, Color txt, Color txt2, Color muted,
+    bool isDark,
   ) {
+    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'M';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.divider),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+            child: Text(
+              initials,
+              style: const TextStyle(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
             ),
-            child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
+                Text(name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: txt)),
                 const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 13,
-                  ),
-                ),
+                Text(plan, style: TextStyle(color: txt2, fontSize: 12)),
               ],
             ),
           ),
-          Text(
-            time,
-            style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppTheme.success.withValues(alpha: isDark ? 0.15 : 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '₹${amount.toStringAsFixed(0)}',
+              style: const TextStyle(
+                color: AppTheme.success,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-}
 
-class _QuickStat extends StatelessWidget {
-  final String label;
-  final String value;
-  const _QuickStat({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
+  Widget _emptyState(
+    IconData icon, String title, String desc,
+    Color cardBg, Color border, Color txt, Color muted,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, size: 32, color: AppTheme.primary),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
+          const SizedBox(height: 14),
+          Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: txt)),
+          const SizedBox(height: 6),
+          Text(desc, style: TextStyle(color: muted, fontSize: 12), textAlign: TextAlign.center),
+        ],
+      ),
     );
+  }
+
+  String _fmt(double v) {
+    if (v >= 100000) return '${(v / 100000).toStringAsFixed(1)}L';
+    if (v >= 1000)   return '${(v / 1000).toStringAsFixed(1)}K';
+    return v.toStringAsFixed(0);
   }
 }

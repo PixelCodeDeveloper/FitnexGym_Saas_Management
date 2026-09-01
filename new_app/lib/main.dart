@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'middleware/auth_guard.dart';
 import 'theme/app_theme.dart';
+import 'theme/theme_notifier.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/main_layout.dart';
 import 'screens/paywall_screen.dart';
 import 'screens/subscription_screen.dart';
 
+// Global theme notifier — accessible from anywhere
+final themeNotifier = ThemeNotifier();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await themeNotifier.init();
   runApp(const GymOwnerApp());
 }
 
@@ -17,24 +22,29 @@ class GymOwnerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Gym Owner SaaS',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: const AuthCheckScreen(),
-      routes: {
-        '/login': (_) => const LoginScreen(),
-        '/onboarding': (_) => const OnboardingScreen(),
-        '/dashboard': (_) => const MainLayout(),
-        '/paywall': (_) => const Scaffold(body: PaywallScreen()),
-        '/subscription': (_) => const SubscriptionScreen(),
-        '/auth-check': (_) => const AuthCheckScreen(),
-      },
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (_, mode, __) => MaterialApp(
+        title: 'FitnexGym',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: mode,
+        home: const AuthCheckScreen(),
+        routes: {
+          '/login':      (_) => const LoginScreen(),
+          '/onboarding': (_) => const OnboardingScreen(),
+          '/dashboard':  (_) => const MainLayout(),
+          '/paywall':    (_) => const Scaffold(body: PaywallScreen()),
+          '/subscription': (_) => const SubscriptionScreen(),
+          '/auth-check': (_) => const AuthCheckScreen(),
+        },
+      ),
     );
   }
 }
 
-/// Splash screen that determines the initial route using AuthGuard.
+/// Splash / auth-check screen
 class AuthCheckScreen extends StatefulWidget {
   const AuthCheckScreen({super.key});
 
@@ -58,26 +68,40 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = themeNotifier.isDark;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: AppTheme.primaryGlow,
               ),
               child: const Icon(
                 Icons.fitness_center_rounded,
-                size: 48,
+                size: 52,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 24),
-            const CircularProgressIndicator(color: AppTheme.primary),
+            const SizedBox(height: 28),
+            const CircularProgressIndicator(
+              color: AppTheme.primary,
+              strokeWidth: 2.5,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'FitnexGym',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
+            ),
           ],
         ),
       ),
