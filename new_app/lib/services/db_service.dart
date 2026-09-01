@@ -319,7 +319,7 @@ class DbService {
   static Future<double> getMonthlyRevenue([String? _]) async {
     try {
       final res = await ApiClient.get('/v1/reports/monthly-revenue');
-      return ((res as Map<String, dynamic>)['total'] as num).toDouble();
+      return double.tryParse((res as Map<String, dynamic>)['total']?.toString() ?? '') ?? 0.0;
     } catch (_) {
       return 0.0;
     }

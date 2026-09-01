@@ -22,8 +22,8 @@ class SubscriptionPlan {
         id: json['id'],
         gymId: json['gym_id'],
         name: json['name'],
-        durationDays: json['duration_days'],
-        price: (json['price'] as num).toDouble(),
+        durationDays: int.tryParse(json['duration_days']?.toString() ?? '') ?? 30,
+        price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
         description: json['description'],
         createdAt: DateTime.parse(json['created_at']),
       );

@@ -22,7 +22,7 @@ class Payment {
     gymId: json['gym_id'],
     memberId: json['member_id'],
     memberName: json['member_name'],
-    amount: (json['amount'] as num).toDouble(),
+    amount: double.tryParse(json['amount']?.toString() ?? '') ?? 0.0,
     planName: json['plan_name'],
     paidAt: DateTime.parse(json['paid_at']),
   );

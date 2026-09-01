@@ -39,7 +39,7 @@ class Member {
     planId: json['plan_id'],
     subscriptionStart: DateTime.parse(json['subscription_start']),
     subscriptionEnd: DateTime.parse(json['subscription_end']),
-    amountPaid: (json['amount_paid'] as num).toDouble(),
+    amountPaid: double.tryParse(json['amount_paid']?.toString() ?? '') ?? 0.0,
     createdAt: DateTime.parse(json['created_at']),
   );
 
