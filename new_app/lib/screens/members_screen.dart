@@ -117,6 +117,82 @@ class _MembersScreenState extends State<MembersScreen> {
     }
   }
 
+  Future<void> _sendTwilioWhatsApp(Member member) async {
+    final msg = 'Hi ${member.name}, your Fitnex GYM membership expires on '
+        '${DateFormat('dd MMM yyyy').format(member.subscriptionEnd)}. '
+        'Please renew to keep enjoying your workout sessions!';
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sending Twilio WhatsApp… 💬')));
+    final ok = await DbService.sendTwilioNotification(phone: member.phone, message: msg, type: 'whatsapp');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? 'Twilio WhatsApp Sent to ${member.name}! 🚀' : 'Twilio WhatsApp Delivery Failed'),
+        backgroundColor: ok ? AppTheme.success : AppTheme.error,
+      ));
+    }
+  }
+
+  void _showWhatsAppOptions(Member member) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+    final txt    = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
+    final txt2   = isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary;
+    final border = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(color: border, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            Text('Send WhatsApp to ${member.name}', style: TextStyle(color: txt, fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: AppTheme.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.api_rounded, color: AppTheme.success, size: 22),
+              ),
+              title: Text('Twilio WhatsApp API', style: TextStyle(color: txt, fontWeight: FontWeight.w600)),
+              subtitle: Text('Send automated WhatsApp message via Twilio server API', style: TextStyle(color: txt2, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _sendTwilioWhatsApp(member);
+              },
+            ),
+            Divider(color: border, height: 16),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.chat_bubble_rounded, color: AppTheme.primary, size: 22),
+              ),
+              title: Text('Open WhatsApp App', style: TextStyle(color: txt, fontWeight: FontWeight.w600)),
+              subtitle: Text('Open directly in your phone\'s WhatsApp app', style: TextStyle(color: txt2, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _launchWhatsApp(member);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmDelete(Member member) {
     showDialog(
       context: context,
@@ -402,7 +478,7 @@ class _MembersScreenState extends State<MembersScreen> {
               children: [
                 _actionBtn(Icons.sms_outlined,          'SMS',      AppTheme.accent,   () => _sendTwilioSMS(m)),
                 _vDivider(isDark),
-                _actionBtn(Icons.chat_rounded,           'WhatsApp', AppTheme.success,  () => _launchWhatsApp(m)),
+                _actionBtn(Icons.chat_rounded,           'WhatsApp', AppTheme.success,  () => _showWhatsAppOptions(m)),
                 _vDivider(isDark),
                 _actionBtn(Icons.autorenew_rounded,      'Renew',    AppTheme.primary,  () => _openRenewScreen(m)),
               ],
