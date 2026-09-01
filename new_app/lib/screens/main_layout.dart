@@ -7,7 +7,7 @@ import 'diet_screen.dart';
 import 'plans_screen.dart';
 import 'reports_screen.dart';
 import 'settings_screen.dart';
-import 'paywall_screen.dart';
+import 'subscription_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -27,7 +27,7 @@ class _MainLayoutState extends State<MainLayout> {
     'Subscription Plans',
     'Reports',
     'Settings',
-    'App Billing',
+    'Subscription & Billing',
   ];
 
   final List<Widget> _screens = [
@@ -38,7 +38,7 @@ class _MainLayoutState extends State<MainLayout> {
     const PlansScreen(),
     const ReportsScreen(),
     const SettingsScreen(),
-    const PaywallScreen(),
+    const SubscriptionScreen(),
   ];
 
   void _onMenuSelected(int index) {
@@ -51,26 +51,44 @@ class _MainLayoutState extends State<MainLayout> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_titles[_currentIndex]),
-        actions: _currentIndex == 0
-            ? [
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceAlt,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.notifications_none_rounded,
-                      size: 22,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  onPressed: () {},
-                ),
-                const SizedBox(width: 8),
-              ]
-            : [],
+        actions: [
+          TextButton.icon(
+            onPressed: () => setState(() => _currentIndex = 7),
+            icon: const Icon(Icons.star_rounded, color: AppTheme.warning, size: 18),
+            label: const Text(
+              'Pro Plan',
+              style: TextStyle(
+                color: AppTheme.primaryDark,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceAlt,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.notifications_none_rounded,
+                size: 22,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       drawer: Drawer(
         backgroundColor: Colors.white,
@@ -91,7 +109,7 @@ class _MainLayoutState extends State<MainLayout> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                         width: 2,
                       ),
                     ),
@@ -117,30 +135,34 @@ class _MainLayoutState extends State<MainLayout> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.circle, color: AppTheme.success, size: 6),
-                        SizedBox(width: 4),
-                        Text(
-                          'Pro Plan Active',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: () => _onMenuSelected(7),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.circle, color: AppTheme.success, size: 8),
+                          SizedBox(width: 6),
+                          Text(
+                            'Active Plan • View Details →',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -176,8 +198,8 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                   _buildDrawerItem(Icons.settings_rounded, 'Settings', 6),
                   _buildDrawerItem(
-                    Icons.lock_outline_rounded,
-                    'App Billing',
+                    Icons.verified_rounded,
+                    'Subscription & Billing',
                     7,
                   ),
                 ],
@@ -220,7 +242,7 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ),
         selected: selected,
-        selectedTileColor: AppTheme.primary.withOpacity(0.08),
+        selectedTileColor: AppTheme.primary.withValues(alpha: 0.08),
         onTap: () => _onMenuSelected(index),
       ),
     );

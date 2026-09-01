@@ -3,10 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/diet_plan.dart';
 import '../services/db_service.dart';
-import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/input_validator.dart';
-// start
+import 'forms/add_diet_plan_screen.dart';
+
 class DietScreen extends StatefulWidget {
   const DietScreen({super.key});
 
@@ -40,22 +39,16 @@ class _DietScreenState extends State<DietScreen> {
     }
   }
 
-  void _showAddDietModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => _AddDietForm(
-        onPlanAdded: (newPlan) {
-          setState(() {
-            _plans.insert(0, newPlan);
-          });
-        },
-      ),
+  Future<void> _openAddDietPlanScreen() async {
+    final newPlan = await Navigator.push<DietPlan>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddDietPlanScreen()),
     );
+    if (newPlan != null) {
+      setState(() {
+        _plans.insert(0, newPlan);
+      });
+    }
   }
 
   Future<void> _copyPlan(DietPlan plan) async {
@@ -241,176 +234,9 @@ class _DietScreenState extends State<DietScreen> {
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddDietModal,
+        onPressed: _openAddDietPlanScreen,
         icon: const Icon(Icons.add),
         label: const Text('New Diet'),
-      ),
-    );
-  }
-}
-
-class _AddDietForm extends StatefulWidget {
-  final Function(DietPlan) onPlanAdded;
-  const _AddDietForm({required this.onPlanAdded});
-
-  @override
-  State<_AddDietForm> createState() => _AddDietFormState();
-}
-
-class _AddDietFormState extends State<_AddDietForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _caloriesController = TextEditingController();
-  final _breakfastController = TextEditingController();
-  final _lunchController = TextEditingController();
-  final _dinnerController = TextEditingController();
-  String _selectedType = 'veg';
-  bool _isSaving = false;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _caloriesController.dispose();
-    _breakfastController.dispose();
-    _lunchController.dispose();
-    _dinnerController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      final gymId = await AuthService.getGymId() ?? 'gym_demo';
-      final now = DateTime.now();
-      final items = <String>[];
-      if (_breakfastController.text.trim().isNotEmpty) {
-        items.add('Breakfast: ${_breakfastController.text.trim()}');
-      }
-      if (_lunchController.text.trim().isNotEmpty) {
-        items.add('Lunch: ${_lunchController.text.trim()}');
-      }
-      if (_dinnerController.text.trim().isNotEmpty) {
-        items.add('Dinner: ${_dinnerController.text.trim()}');
-      }
-      if (items.isEmpty) {
-        items.add('Balanced High-Protein Meal Plan');
-      }
-
-      final plan = DietPlan(
-        id: 'diet_${now.millisecondsSinceEpoch}',
-        gymId: gymId,
-        title: _titleController.text.trim(),
-        type: _selectedType,
-        calories: '${_caloriesController.text.trim()} kcal',
-        items: items,
-        createdAt: now,
-      );
-
-      final created = await DbService.addDietPlan(plan);
-      widget.onPlanAdded(created);
-      if (mounted) Navigator.pop(context);
-    } catch (_) {
-      final now = DateTime.now();
-      final fallback = DietPlan(
-        id: 'diet_${now.millisecondsSinceEpoch}',
-        gymId: 'gym_demo',
-        title: _titleController.text.trim(),
-        type: _selectedType,
-        calories: '${_caloriesController.text.trim()} kcal',
-        items: [
-          if (_breakfastController.text.isNotEmpty) 'Breakfast: ${_breakfastController.text}',
-          if (_lunchController.text.isNotEmpty) 'Lunch: ${_lunchController.text}',
-          if (_dinnerController.text.isNotEmpty) 'Dinner: ${_dinnerController.text}',
-        ],
-        createdAt: now,
-      );
-      widget.onPlanAdded(fallback);
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        top: 24,
-        left: 24,
-        right: 24,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Add Diet Plan Template', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-
-              TextFormField(
-                controller: _titleController,
-                validator: InputValidator.validateName,
-                decoration: const InputDecoration(labelText: 'Plan Title *', hintText: 'e.g. Lean Muscle Gain'),
-              ),
-              const SizedBox(height: 14),
-
-              DropdownButtonFormField<String>(
-                value: _selectedType,
-                decoration: const InputDecoration(labelText: 'Diet Type'),
-                items: const [
-                  DropdownMenuItem(value: 'veg', child: Text('Vegetarian 🥗')),
-                  DropdownMenuItem(value: 'nonveg', child: Text('Non-Vegetarian 🍗')),
-                ],
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedType = val);
-                },
-              ),
-              const SizedBox(height: 14),
-
-              TextFormField(
-                controller: _caloriesController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: InputValidator.validateAmount,
-                decoration: const InputDecoration(labelText: 'Target Calories (kcal) *', hintText: 'e.g. 2200'),
-              ),
-              const SizedBox(height: 14),
-
-              TextFormField(
-                controller: _breakfastController,
-                decoration: const InputDecoration(labelText: 'Breakfast Menu', hintText: 'e.g. Oats + Egg whites + Almonds'),
-              ),
-              const SizedBox(height: 10),
-
-              TextFormField(
-                controller: _lunchController,
-                decoration: const InputDecoration(labelText: 'Lunch Menu', hintText: 'e.g. Grilled Chicken / Paneer + Brown Rice'),
-              ),
-              const SizedBox(height: 10),
-
-              TextFormField(
-                controller: _dinnerController,
-                decoration: const InputDecoration(labelText: 'Dinner Menu', hintText: 'e.g. Fish / Tofu + Green Salad + Soup'),
-              ),
-              const SizedBox(height: 24),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _submit,
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: _isSaving
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Save Diet Plan'),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

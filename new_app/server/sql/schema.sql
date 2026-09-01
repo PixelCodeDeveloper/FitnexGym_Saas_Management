@@ -75,7 +75,7 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT CONNECT ON DATABASE gym_owner TO gym_api;
 GRANT USAGE ON SCHEMA public TO gym_api;
 GRANT SELECT, INSERT, UPDATE ON users TO gym_api;
-GRANT SELECT, INSERT ON gyms, gym_billing TO gym_api;
+GRANT SELECT, INSERT, UPDATE ON gyms, gym_billing TO gym_api;
 GRANT SELECT, INSERT, UPDATE, DELETE ON plans, members, leads, diet_plans, payments TO gym_api;
 GRANT SELECT, INSERT, DELETE ON revoked_tokens TO gym_api;
 GRANT INSERT ON security_audit_log TO gym_api;

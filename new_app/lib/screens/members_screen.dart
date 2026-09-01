@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/member.dart';
-import '../models/payment.dart';
 import '../services/db_service.dart';
-import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/input_validator.dart';
+import 'forms/add_member_screen.dart';
+import 'forms/renew_member_screen.dart';
 
 class MembersScreen extends StatefulWidget {
   const MembersScreen({super.key});
@@ -67,42 +65,29 @@ class _MembersScreenState extends State<MembersScreen> {
     }
   }
 
-  void _showAddMemberModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => _AddMemberForm(
-        onMemberAdded: (newMember) {
-          setState(() {
-            _members.insert(0, newMember);
-          });
-        },
-      ),
+  Future<void> _openAddMemberScreen() async {
+    final newMember = await Navigator.push<Member>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddMemberScreen()),
     );
+    if (newMember != null) {
+      setState(() {
+        _members.insert(0, newMember);
+      });
+    }
   }
 
-  void _showRenewModal(Member member) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => _RenewMemberForm(
-        member: member,
-        onRenewed: (updatedMember) {
-          setState(() {
-            final idx = _members.indexWhere((m) => m.id == member.id);
-            if (idx != -1) _members[idx] = updatedMember;
-          });
-        },
-      ),
+  Future<void> _openRenewScreen(Member member) async {
+    final updatedMember = await Navigator.push<Member>(
+      context,
+      MaterialPageRoute(builder: (_) => RenewMemberScreen(member: member)),
     );
+    if (updatedMember != null) {
+      setState(() {
+        final idx = _members.indexWhere((m) => m.id == member.id);
+        if (idx != -1) _members[idx] = updatedMember;
+      });
+    }
   }
 
   Future<void> _launchWhatsApp(Member member) async {
@@ -152,6 +137,8 @@ class _MembersScreenState extends State<MembersScreen> {
           ),
         ],
       ),
+    );
+  }
   Future<void> _sendTwilioSMS(Member member) async {
     final msg = 'Hi ${member.name}, your Fitnex GYM membership expires on ${DateFormat('dd MMM yyyy').format(member.subscriptionEnd)}. Please renew to continue workout!';
     ScaffoldMessenger.of(context).showSnackBar(
@@ -376,7 +363,7 @@ class _MembersScreenState extends State<MembersScreen> {
                                           icon: Icons.refresh,
                                           label: 'Renew',
                                           color: AppTheme.primary,
-                                          onTap: () => _showRenewModal(m),
+                                          onTap: () => _openRenewScreen(m),
                                         ),
                                       ],
                                     ),
@@ -391,269 +378,9 @@ class _MembersScreenState extends State<MembersScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddMemberModal,
+        onPressed: _openAddMemberScreen,
         icon: const Icon(Icons.person_add_alt_1),
         label: const Text('Add Member'),
-      ),
-    );
-  }
-}
-
-class _AddMemberForm extends StatefulWidget {
-  final Function(Member) onMemberAdded;
-  const _AddMemberForm({required this.onMemberAdded});
-
-  @override
-  State<_AddMemberForm> createState() => _AddMemberFormState();
-}
-
-class _AddMemberFormState extends State<_AddMemberForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _amountController = TextEditingController(text: '1800');
-  int _selectedDurationMonths = 1;
-  bool _isSaving = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _amountController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      final gymId = await AuthService.getGymId() ?? 'gym_demo';
-      final now = DateTime.now();
-      final member = Member(
-        id: 'mem_${now.millisecondsSinceEpoch}',
-        gymId: gymId,
-        name: _nameController.text.trim(),
-        phone: InputValidator.sanitizePhone(_phoneController.text),
-        subscriptionStart: now,
-        subscriptionEnd: DateTime(now.year, now.month + _selectedDurationMonths, now.day),
-        amountPaid: double.tryParse(_amountController.text.trim()) ?? 1800.0,
-        createdAt: now,
-      );
-
-      final created = await DbService.addMember(member);
-      widget.onMemberAdded(created);
-      if (mounted) Navigator.pop(context);
-    } catch (_) {
-      final now = DateTime.now();
-      final fallbackMember = Member(
-        id: 'mem_${now.millisecondsSinceEpoch}',
-        gymId: 'gym_demo',
-        name: _nameController.text.trim(),
-        phone: InputValidator.sanitizePhone(_phoneController.text),
-        subscriptionStart: now,
-        subscriptionEnd: DateTime(now.year, now.month + _selectedDurationMonths, now.day),
-        amountPaid: double.tryParse(_amountController.text.trim()) ?? 1800.0,
-        createdAt: now,
-      );
-      widget.onMemberAdded(fallbackMember);
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        top: 24,
-        left: 24,
-        right: 24,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Add New Gym Member', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-
-              // Name
-              TextFormField(
-                controller: _nameController,
-                validator: InputValidator.validateName,
-                decoration: const InputDecoration(labelText: 'Full Name *', hintText: 'e.g. Rahul Sharma'),
-              ),
-              const SizedBox(height: 14),
-
-              // Phone (Strict 10 digits)
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
-                ],
-                validator: InputValidator.validatePhone,
-                decoration: const InputDecoration(
-                  labelText: '10-Digit Mobile Number *',
-                  hintText: 'e.g. 9876543210',
-                  prefixText: '+91 ',
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Duration
-              DropdownButtonFormField<int>(
-                value: _selectedDurationMonths,
-                decoration: const InputDecoration(labelText: 'Membership Package'),
-                items: const [
-                  DropdownMenuItem(value: 1, child: Text('1 Month Package')),
-                  DropdownMenuItem(value: 3, child: Text('3 Months Package')),
-                  DropdownMenuItem(value: 6, child: Text('6 Months Package')),
-                  DropdownMenuItem(value: 12, child: Text('1 Year Package')),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _selectedDurationMonths = val;
-                      _amountController.text = (val * 1800).toString();
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 14),
-
-              // Amount Paid
-              TextFormField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: InputValidator.validateAmount,
-                decoration: const InputDecoration(labelText: 'Amount Paid (₹) *', prefixText: '₹ '),
-              ),
-              const SizedBox(height: 24),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _submit,
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: _isSaving
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Save Member'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RenewMemberForm extends StatefulWidget {
-  final Member member;
-  final Function(Member) onRenewed;
-  const _RenewMemberForm({required this.member, required this.onRenewed});
-
-  @override
-  State<_RenewMemberForm> createState() => _RenewMemberFormState();
-}
-
-class _RenewMemberFormState extends State<_RenewMemberForm> {
-  int _months = 1;
-  final _amountController = TextEditingController(text: '1800');
-  bool _isSaving = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        top: 24,
-        left: 24,
-        right: 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Renew Membership - ${widget.member.name}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<int>(
-            value: _months,
-            decoration: const InputDecoration(labelText: 'Renewal Duration'),
-            items: const [
-              DropdownMenuItem(value: 1, child: Text('1 Month Extension')),
-              DropdownMenuItem(value: 3, child: Text('3 Months Extension')),
-              DropdownMenuItem(value: 6, child: Text('6 Months Extension')),
-              DropdownMenuItem(value: 12, child: Text('1 Year Extension')),
-            ],
-            onChanged: (val) {
-              if (val != null) {
-                setState(() {
-                  _months = val;
-                  _amountController.text = (val * 1800).toString();
-                });
-              }
-            },
-          ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _amountController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(labelText: 'Renewal Fee Collected (₹)', prefixText: '₹ '),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isSaving
-                  ? null
-                  : () async {
-                      setState(() => _isSaving = true);
-                      final amt = double.tryParse(_amountController.text) ?? 1800.0;
-                      final baseStart = widget.member.subscriptionEnd.isBefore(DateTime.now())
-                          ? DateTime.now()
-                          : widget.member.subscriptionEnd;
-                      final newEnd = DateTime(baseStart.year, baseStart.month + _months, baseStart.day);
-
-                      final updated = Member(
-                        id: widget.member.id,
-                        gymId: widget.member.gymId,
-                        name: widget.member.name,
-                        phone: widget.member.phone,
-                        planId: widget.member.planId,
-                        subscriptionStart: baseStart,
-                        subscriptionEnd: newEnd,
-                        amountPaid: widget.member.amountPaid + amt,
-                        createdAt: widget.member.createdAt,
-                      );
-
-                      await DbService.recordPayment(
-                        Payment(
-                          id: 'pay_${DateTime.now().millisecondsSinceEpoch}',
-                          gymId: widget.member.gymId,
-                          memberId: widget.member.id,
-                          memberName: widget.member.name,
-                          amount: amt,
-                          planName: '$_months Month Renewal',
-                          paidAt: DateTime.now(),
-                        ),
-                      );
-
-                      widget.onRenewed(updated);
-                      if (mounted) Navigator.pop(context);
-                    },
-              child: const Text('Confirm Renewal'),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -665,6 +392,7 @@ class _ActionChip extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
   const _ActionChip({
+    super.key,
     required this.icon,
     required this.label,
     required this.color,

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/subscription_plan.dart';
 import '../services/db_service.dart';
-import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/input_validator.dart';
+import 'forms/add_plan_screen.dart';
 
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key});
@@ -39,22 +37,16 @@ class _PlansScreenState extends State<PlansScreen> {
     }
   }
 
-  void _showAddPlanModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => _AddPlanForm(
-        onPlanAdded: (newPlan) {
-          setState(() {
-            _plans.insert(0, newPlan);
-          });
-        },
-      ),
+  Future<void> _openAddPlanScreen() async {
+    final newPlan = await Navigator.push<SubscriptionPlan>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddPlanScreen()),
     );
+    if (newPlan != null) {
+      setState(() {
+        _plans.insert(0, newPlan);
+      });
+    }
   }
 
   @override
@@ -181,151 +173,9 @@ class _PlansScreenState extends State<PlansScreen> {
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddPlanModal,
+        onPressed: _openAddPlanScreen,
         icon: const Icon(Icons.add),
         label: const Text('New Plan'),
-      ),
-    );
-  }
-}
-
-class _AddPlanForm extends StatefulWidget {
-  final Function(SubscriptionPlan) onPlanAdded;
-  const _AddPlanForm({required this.onPlanAdded});
-
-  @override
-  State<_AddPlanForm> createState() => _AddPlanFormState();
-}
-
-class _AddPlanFormState extends State<_AddPlanForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _descController = TextEditingController();
-  int _durationDays = 30;
-  bool _isSaving = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _priceController.dispose();
-    _descController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      final gymId = await AuthService.getGymId() ?? 'gym_demo';
-      final now = DateTime.now();
-      final plan = SubscriptionPlan(
-        id: 'plan_${now.millisecondsSinceEpoch}',
-        gymId: gymId,
-        name: _nameController.text.trim(),
-        durationDays: _durationDays,
-        price: double.parse(_priceController.text.trim()),
-        description: _descController.text.trim().isNotEmpty ? _descController.text.trim() : null,
-        createdAt: now,
-      );
-
-      final created = await DbService.addPlan(plan);
-      widget.onPlanAdded(created);
-      if (mounted) Navigator.pop(context);
-    } catch (_) {
-      final now = DateTime.now();
-      final fallback = SubscriptionPlan(
-        id: 'plan_${now.millisecondsSinceEpoch}',
-        gymId: 'gym_demo',
-        name: _nameController.text.trim(),
-        durationDays: _durationDays,
-        price: double.tryParse(_priceController.text.trim()) ?? 1500.0,
-        description: _descController.text.trim().isNotEmpty ? _descController.text.trim() : null,
-        createdAt: now,
-      );
-      widget.onPlanAdded(fallback);
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        top: 24,
-        left: 24,
-        right: 24,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Add Subscription Plan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-
-              // Title
-              TextFormField(
-                controller: _nameController,
-                validator: InputValidator.validateName,
-                decoration: const InputDecoration(labelText: 'Plan Name *', hintText: 'e.g. 6 Months Gold Package'),
-              ),
-              const SizedBox(height: 14),
-
-              // Price
-              TextFormField(
-                controller: _priceController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: InputValidator.validateAmount,
-                decoration: const InputDecoration(labelText: 'Plan Price (₹) *', prefixText: '₹ ', hintText: 'e.g. 7500'),
-              ),
-              const SizedBox(height: 14),
-
-              // Duration
-              DropdownButtonFormField<int>(
-                value: _durationDays,
-                decoration: const InputDecoration(labelText: 'Duration'),
-                items: const [
-                  DropdownMenuItem(value: 30, child: Text('30 Days (1 Month)')),
-                  DropdownMenuItem(value: 90, child: Text('90 Days (3 Months)')),
-                  DropdownMenuItem(value: 180, child: Text('180 Days (6 Months)')),
-                  DropdownMenuItem(value: 365, child: Text('365 Days (1 Year)')),
-                ],
-                onChanged: (val) {
-                  if (val != null) setState(() => _durationDays = val);
-                },
-              ),
-              const SizedBox(height: 14),
-
-              // Description
-              TextFormField(
-                controller: _descController,
-                decoration: const InputDecoration(
-                  labelText: 'Plan Description',
-                  hintText: 'e.g. Full access + free steam bath',
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _submit,
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: _isSaving
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Save Plan'),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

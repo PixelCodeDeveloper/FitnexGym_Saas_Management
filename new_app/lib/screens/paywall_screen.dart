@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../models/subscription_info.dart';
 import '../services/auth_service.dart';
 import '../services/db_service.dart';
 import '../theme/app_theme.dart';
@@ -14,6 +15,8 @@ class PaywallScreen extends StatefulWidget {
 class _PaywallScreenState extends State<PaywallScreen> {
   late Razorpay _razorpay;
   bool _isLoading = false;
+  bool _isCheckingStatus = true;
+  SubscriptionInfo? _subInfo;
   String? _pendingOrderId;
 
   @override
@@ -23,6 +26,21 @@ class _PaywallScreenState extends State<PaywallScreen> {
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    _checkSubscriptionState();
+  }
+
+  Future<void> _checkSubscriptionState() async {
+    try {
+      final info = await DbService.getSubscriptionInfo();
+      if (mounted) {
+        setState(() {
+          _subInfo = info;
+          _isCheckingStatus = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isCheckingStatus = false);
+    }
   }
 
   @override
@@ -133,6 +151,23 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingStatus) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+      );
+    }
+
+    final isFirstTime = _subInfo?.isFirstTime ?? false;
+    final titleText = isFirstTime ? 'Buy Pro Subscription' : 'Subscription Expired';
+    final subtitleText = isFirstTime
+        ? 'Unlock full access to FitnexGym SaaS to manage members, track monthly revenue, and power your gym operations.'
+        : 'Your monthly subscription has expired. Renew your plan to continue managing members, tracking revenue, and growing your gym business.';
+    final buttonText = isFirstTime ? 'Buy Subscription Now →' : 'Renew Subscription Now →';
+    final iconBgColor = isFirstTime ? AppTheme.primary.withValues(alpha: 0.1) : AppTheme.errorBg;
+    final iconColor = isFirstTime ? AppTheme.primary : AppTheme.error;
+    final headerIcon = isFirstTime ? Icons.workspace_premium_rounded : Icons.lock_outline_rounded;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -143,20 +178,21 @@ class _PaywallScreenState extends State<PaywallScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: AppTheme.errorBg,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.lock_outline_rounded,
+                child: Icon(
+                  headerIcon,
                   size: 56,
-                  color: AppTheme.error,
+                  color: iconColor,
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'App Access Locked',
-                style: TextStyle(
+              Text(
+                titleText,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   color: AppTheme.textPrimary,
@@ -164,10 +200,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Your monthly subscription has expired. Renew your plan to continue managing members, tracking revenue, and growing your gym business.',
+              Text(
+                subtitleText,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 15,
                   color: AppTheme.textSecondary,
                   height: 1.6,
@@ -247,13 +283,25 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                   color: AppTheme.primary,
                                 ),
                               )
-                            : const Text('Renew Now →'),
+                            : Text(buttonText),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: _isLoading ? null : _handleRestorePurchase,
+                      child: const Text(
+                        'Already Paid? Restore Active Plan 🔄',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               TextButton(
                 onPressed: _handleSignOut,
                 child: const Text(
@@ -266,6 +314,27 @@ class _PaywallScreenState extends State<PaywallScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleRestorePurchase() async {
+    setState(() => _isLoading = true);
+    try {
+      final success = await DbService.syncActiveSubscriptionWithServer();
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Active Plan Restored & Synced! 🎉'),
+              backgroundColor: AppTheme.success,
+            ),
+          );
+          Navigator.pushReplacementNamed(context, '/main');
+        }
+        return;
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }
 

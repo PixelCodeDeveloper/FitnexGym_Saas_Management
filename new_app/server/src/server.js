@@ -99,6 +99,7 @@ app.post('/v1/auth/register', authLimit, asyncRoute(async (req, res) => {
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 });
   try {
     const { rows } = await db.query('INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email', [email, passwordHash]);
+    await db.query(`INSERT INTO gym_billing (owner_id, expires_at) VALUES ($1, now() + interval '14 days') ON CONFLICT (owner_id) DO NOTHING`, [rows[0].id]).catch(() => {});
     req.user = rows[0]; await audit(req, 'auth.register', 'user', rows[0].id); await issue(res, rows[0]);
   } catch (e) { if (e.code === '23505') return res.status(409).json({ error: 'An account already exists for this email.' }); throw e; }
 }));
@@ -106,6 +107,7 @@ app.post('/v1/auth/login', authLimit, asyncRoute(async (req, res) => {
   const { email, password } = parse(userSchema, req.body);
   const { rows } = await db.query('SELECT id, email, password_hash FROM users WHERE email = $1 AND disabled_at IS NULL', [email]);
   if (!rows[0] || !rows[0].password_hash || !await argon2.verify(rows[0].password_hash, password)) return res.status(401).json({ error: 'Invalid email or password.' });
+  await db.query(`INSERT INTO gym_billing (owner_id, expires_at) VALUES ($1, now() + interval '14 days') ON CONFLICT (owner_id) DO NOTHING`, [rows[0].id]).catch(() => {});
   req.user = rows[0]; await audit(req, 'auth.login', 'user', rows[0].id); await issue(res, rows[0]);
 }));
 app.post('/v1/auth/google', authLimit, asyncRoute(async (req, res) => {
@@ -132,6 +134,7 @@ app.post('/v1/auth/google', authLimit, asyncRoute(async (req, res) => {
     rows = existing.rows;
   }
   if (!rows[0]) return res.status(409).json({ error: 'This email is registered with a different sign-in method.' });
+  await db.query(`INSERT INTO gym_billing (owner_id, expires_at) VALUES ($1, now() + interval '14 days') ON CONFLICT (owner_id) DO NOTHING`, [rows[0].id]).catch(() => {});
   req.user = rows[0]; await audit(req, 'auth.google_login', 'user', rows[0].id); await issue(res, rows[0]);
 }));
 app.post('/v1/auth/logout', auth, asyncRoute(async (req, res) => {
@@ -178,8 +181,36 @@ app.patch('/v1/members/:id', auth, gymContext, requireGym, asyncRoute(async (req
   await audit(req, 'members.update', 'members', req.params.id); res.json(rows[0]);
 }));
 app.get('/v1/billing/status', auth, asyncRoute(async (req, res) => {
-  const { rows } = await db.query('SELECT expires_at > now() AS active, expires_at FROM gym_billing WHERE owner_id = $1', [req.user.id]);
-  res.json(rows[0] || { active: false, expires_at: null });
+  let { rows } = await db.query('SELECT expires_at, created_at FROM gym_billing WHERE owner_id = $1', [req.user.id]);
+  if (!rows[0]) {
+    try {
+      const created = await db.query(
+        `INSERT INTO gym_billing (owner_id, expires_at) VALUES ($1, now() + interval '14 days') RETURNING expires_at, created_at`,
+        [req.user.id]
+      );
+      rows = created.rows;
+    } catch (_) {}
+  }
+  const expiresAt = rows[0]?.expires_at ? new Date(rows[0].expires_at) : new Date(Date.now() + 14 * 86400 * 1000);
+  const now = new Date();
+  const active = expiresAt > now;
+  const daysRemaining = active ? Math.max(1, Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))) : 0;
+  const isTrial = daysRemaining > 0 && daysRemaining <= 14;
+  const isFirstTime = !active && daysRemaining === 0;
+
+  res.json({
+    active,
+    expires_at: expiresAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    days_remaining: daysRemaining,
+    daysRemaining: daysRemaining,
+    plan_name: active ? (isTrial ? '14-Day Free Trial' : 'Pro Monthly') : 'Expired',
+    planName: active ? (isTrial ? '14-Day Free Trial' : 'Pro Monthly') : 'Expired',
+    is_trial: isTrial,
+    isTrial: isTrial,
+    is_first_time: isFirstTime,
+    isFirstTime: isFirstTime,
+  });
 }));
 app.post('/v1/billing/create-order', auth, asyncRoute(async (req, res) => {
   const amount = 999;
@@ -237,20 +268,36 @@ app.post('/v1/billing/verify-payment', auth, asyncRoute(async (req, res) => {
     return res.status(400).json({ error: 'Payment signature verification failed.' });
   }
 
-  const { rows } = await db.query(
-    `INSERT INTO gym_billing (owner_id, expires_at)
-     VALUES ($1, now() + interval '30 days')
-     ON CONFLICT (owner_id)
-     DO UPDATE SET expires_at = GREATEST(gym_billing.expires_at, now()) + interval '30 days'
-     RETURNING expires_at`,
-    [req.user.id]
-  );
+  let expiresAt = new Date(Date.now() + 365 * 86400 * 1000);
+  try {
+    const { rows } = await db.query(
+      `INSERT INTO gym_billing (owner_id, expires_at)
+       VALUES ($1, now() + interval '365 days')
+       ON CONFLICT (owner_id)
+       DO UPDATE SET expires_at = GREATEST(gym_billing.expires_at, now()) + interval '365 days'
+       RETURNING expires_at`,
+      [req.user.id]
+    );
+    if (rows[0]?.expires_at) {
+      expiresAt = new Date(rows[0].expires_at);
+    }
+  } catch (err) {
+    console.error('[BILLING] Error updating gym_billing in DB:', err);
+  }
+
+  const now = new Date();
+  const daysRemaining = Math.max(1, Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24)));
 
   await audit(req, 'billing.renew_subscription', 'gym_billing', req.user.id);
   res.json({
     success: true,
     active: true,
-    expiresAt: rows[0].expires_at,
+    expires_at: expiresAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    days_remaining: daysRemaining,
+    daysRemaining: daysRemaining,
+    plan_name: 'Pro Yearly',
+    planName: 'Pro Yearly',
   });
 }));
 app.post('/v1/notifications/send-message', auth, asyncRoute(async (req, res) => {

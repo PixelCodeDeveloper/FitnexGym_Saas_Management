@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/lead.dart';
@@ -7,7 +6,7 @@ import '../models/member.dart';
 import '../services/db_service.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/input_validator.dart';
+import 'forms/add_lead_screen.dart';
 
 class LeadsScreen extends StatefulWidget {
   const LeadsScreen({super.key});
@@ -64,22 +63,16 @@ class _LeadsScreenState extends State<LeadsScreen> {
     }
   }
 
-  void _showAddLeadModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => _AddLeadForm(
-        onLeadAdded: (newLead) {
-          setState(() {
-            _leads.insert(0, newLead);
-          });
-        },
-      ),
+  Future<void> _openAddLeadScreen() async {
+    final newLead = await Navigator.push<Lead>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddLeadScreen()),
     );
+    if (newLead != null) {
+      setState(() {
+        _leads.insert(0, newLead);
+      });
+    }
   }
 
   Future<void> _makeCall(Lead lead) async {
@@ -334,160 +327,9 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddLeadModal,
+        onPressed: _openAddLeadScreen,
         icon: const Icon(Icons.add),
         label: const Text('New Lead'),
-      ),
-    );
-  }
-}
-
-class _AddLeadForm extends StatefulWidget {
-  final Function(Lead) onLeadAdded;
-  const _AddLeadForm({required this.onLeadAdded});
-
-  @override
-  State<_AddLeadForm> createState() => _AddLeadFormState();
-}
-
-class _AddLeadFormState extends State<_AddLeadForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _noteController = TextEditingController();
-  LeadStatus _selectedStatus = LeadStatus.hot;
-  DateTime _followUpDate = DateTime.now().add(const Duration(days: 2));
-  bool _isSaving = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      final gymId = await AuthService.getGymId() ?? 'gym_demo';
-      final now = DateTime.now();
-      final lead = Lead(
-        id: 'lead_${now.millisecondsSinceEpoch}',
-        gymId: gymId,
-        name: _nameController.text.trim(),
-        phone: InputValidator.sanitizePhone(_phoneController.text),
-        note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
-        status: _selectedStatus,
-        followUpDate: _followUpDate,
-        createdAt: now,
-      );
-
-      final created = await DbService.addLead(lead);
-      widget.onLeadAdded(created);
-      if (mounted) Navigator.pop(context);
-    } catch (_) {
-      final now = DateTime.now();
-      final fallback = Lead(
-        id: 'lead_${now.millisecondsSinceEpoch}',
-        gymId: 'gym_demo',
-        name: _nameController.text.trim(),
-        phone: InputValidator.sanitizePhone(_phoneController.text),
-        note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
-        status: _selectedStatus,
-        followUpDate: _followUpDate,
-        createdAt: now,
-      );
-      widget.onLeadAdded(fallback);
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        top: 24,
-        left: 24,
-        right: 24,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Add New Lead', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-
-              // Name
-              TextFormField(
-                controller: _nameController,
-                validator: InputValidator.validateName,
-                decoration: const InputDecoration(labelText: 'Lead Name *', hintText: 'e.g. Sanjay Yadav'),
-              ),
-              const SizedBox(height: 14),
-
-              // Phone (10 Digits)
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
-                ],
-                validator: InputValidator.validatePhone,
-                decoration: const InputDecoration(
-                  labelText: '10-Digit Mobile Number *',
-                  hintText: 'e.g. 9123456780',
-                  prefixText: '+91 ',
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Status
-              DropdownButtonFormField<LeadStatus>(
-                value: _selectedStatus,
-                decoration: const InputDecoration(labelText: 'Lead Status'),
-                items: const [
-                  DropdownMenuItem(value: LeadStatus.hot, child: Text('Hot 🔥 (High Interest)')),
-                  DropdownMenuItem(value: LeadStatus.warm, child: Text('Warm ☀️ (Moderate Interest)')),
-                  DropdownMenuItem(value: LeadStatus.cold, child: Text('Cold ❄️ (Low Interest)')),
-                ],
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedStatus = val);
-                },
-              ),
-              const SizedBox(height: 14),
-
-              // Notes
-              TextFormField(
-                controller: _noteController,
-                decoration: const InputDecoration(
-                  labelText: 'Inquiry Notes',
-                  hintText: 'e.g. Interested in morning slot',
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _submit,
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: _isSaving
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Save Lead'),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

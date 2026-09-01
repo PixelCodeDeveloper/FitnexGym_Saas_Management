@@ -5,6 +5,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/main_layout.dart';
 import 'screens/paywall_screen.dart';
+import 'screens/subscription_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,7 @@ class GymOwnerApp extends StatelessWidget {
         '/onboarding': (_) => const OnboardingScreen(),
         '/dashboard': (_) => const MainLayout(),
         '/paywall': (_) => const Scaffold(body: PaywallScreen()),
+        '/subscription': (_) => const SubscriptionScreen(),
         '/auth-check': (_) => const AuthCheckScreen(),
       },
     );

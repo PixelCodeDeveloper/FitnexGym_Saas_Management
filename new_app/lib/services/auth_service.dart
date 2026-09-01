@@ -119,7 +119,12 @@ class AuthService {
   static Future<void> saveGymId(String gymId) =>
       _storage.write(key: _gymIdKey, value: gymId);
   static Future<String?> getGymId() => _storage.read(key: _gymIdKey);
-  static Future<void> clearSession() => _storage.deleteAll();
+  static Future<void> clearSession() async {
+    await _storage.delete(key: _accessTokenKey);
+    await _storage.delete(key: _userIdKey);
+    await _storage.delete(key: _emailKey);
+    await _storage.delete(key: _gymIdKey);
+  }
   static Future<void> signOut() async {
     try {
       await ApiClient.post('/v1/auth/logout');
