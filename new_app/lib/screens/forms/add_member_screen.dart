@@ -60,7 +60,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
       final now    = DateTime.now();
       final months = _durations[_selectedDuration].months;
       final member = Member(
-        id: 'mem_${now.millisecondsSinceEpoch}',
+        id: '',
         gymId: gymId,
         name: _nameController.text.trim(),
         phone: InputValidator.sanitizePhone(_phoneController.text),
@@ -71,20 +71,15 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
       );
       final created = await DbService.addMember(member);
       if (mounted) Navigator.pop(context, created);
-    } catch (_) {
-      final now    = DateTime.now();
-      final months = _durations[_selectedDuration].months;
-      final fallback = Member(
-        id: 'mem_${now.millisecondsSinceEpoch}',
-        gymId: 'gym_demo',
-        name: _nameController.text.trim(),
-        phone: InputValidator.sanitizePhone(_phoneController.text),
-        subscriptionStart: now,
-        subscriptionEnd: DateTime(now.year, now.month + months, now.day),
-        amountPaid: double.tryParse(_amountController.text.trim()) ?? 1800.0,
-        createdAt: now,
-      );
-      if (mounted) Navigator.pop(context, fallback);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not save member to database: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

@@ -28,11 +28,10 @@ class Payment {
   );
 
   Map<String, dynamic> toJson() => {
-    'gym_id': gymId,
     'member_id': memberId,
     'member_name': memberName,
     'amount': amount,
     'plan_name': planName,
-    'paid_at': paidAt.toIso8601String(),
+    'paid_at': paidAt.toUtc().toIso8601String(),
   };
 }

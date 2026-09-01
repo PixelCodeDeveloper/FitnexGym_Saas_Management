@@ -50,7 +50,7 @@ class _AddPlanScreenState extends State<AddPlanScreen> {
       final gymId = await AuthService.getGymId() ?? 'gym_demo';
       final now   = DateTime.now();
       final plan  = SubscriptionPlan(
-        id: 'plan_${now.millisecondsSinceEpoch}',
+        id: '',
         gymId: gymId,
         name: _nameController.text.trim(),
         durationDays: _durations[_selectedDuration].days,
@@ -60,18 +60,15 @@ class _AddPlanScreenState extends State<AddPlanScreen> {
       );
       final created = await DbService.addPlan(plan);
       if (mounted) Navigator.pop(context, created);
-    } catch (_) {
-      final now = DateTime.now();
-      final fallback = SubscriptionPlan(
-        id: 'plan_${now.millisecondsSinceEpoch}',
-        gymId: 'gym_demo',
-        name: _nameController.text.trim(),
-        durationDays: _durations[_selectedDuration].days,
-        price: double.tryParse(_priceController.text.trim()) ?? 1500.0,
-        description: _descController.text.trim().isNotEmpty ? _descController.text.trim() : null,
-        createdAt: now,
-      );
-      if (mounted) Navigator.pop(context, fallback);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not save plan to database: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

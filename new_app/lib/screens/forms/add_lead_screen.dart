@@ -58,7 +58,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       final gymId = await AuthService.getGymId() ?? 'gym_demo';
       final now   = DateTime.now();
       final lead  = Lead(
-        id: 'lead_${now.millisecondsSinceEpoch}',
+        id: '',
         gymId: gymId,
         name: _nameController.text.trim(),
         phone: InputValidator.sanitizePhone(_phoneController.text),
@@ -69,19 +69,15 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       );
       final created = await DbService.addLead(lead);
       if (mounted) Navigator.pop(context, created);
-    } catch (_) {
-      final now      = DateTime.now();
-      final fallback = Lead(
-        id: 'lead_${now.millisecondsSinceEpoch}',
-        gymId: 'gym_demo',
-        name: _nameController.text.trim(),
-        phone: InputValidator.sanitizePhone(_phoneController.text),
-        note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
-        status: _selectedStatus,
-        followUpDate: _followUpDate,
-        createdAt: now,
-      );
-      if (mounted) Navigator.pop(context, fallback);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not save lead to database: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

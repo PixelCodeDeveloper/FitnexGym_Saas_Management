@@ -33,11 +33,10 @@ class Lead {
   );
 
   Map<String, dynamic> toJson() => {
-    'gym_id': gymId,
     'name': name,
     'phone': phone,
-    'note': note,
+    'note': (note != null && note!.isNotEmpty) ? note : null,
     'status': status.name,
-    'follow_up_date': followUpDate.toIso8601String(),
+    'follow_up_date': followUpDate.toUtc().toIso8601String(),
   };
 }

@@ -47,13 +47,19 @@ const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeade
 
 const emailSchema = z.string().trim().email().max(254).transform((x) => x.toLowerCase());
 const passwordSchema = z.string().min(12).max(128);
+const parseDate = z.string().transform((s) => {
+  const d = new Date(s);
+  if (isNaN(d.getTime())) throw new Error('Invalid date format');
+  return d.toISOString();
+});
+
 const userSchema = z.object({ email: emailSchema, password: passwordSchema });
 const gymSchema = z.object({ name: z.string().trim().min(2).max(120), address: z.string().trim().max(500).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(), currency: z.literal('INR').default('INR') });
-const memberSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), plan_id: z.string().uuid().nullable().optional(), subscription_start: z.string().datetime(), subscription_end: z.string().datetime(), amount_paid: z.coerce.number().min(0).max(10000000) });
-const leadSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), note: z.string().trim().max(2000).nullable().optional(), status: z.enum(['hot', 'warm', 'cold']), follow_up_date: z.string().datetime() });
+const memberSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), plan_id: z.string().uuid().nullable().optional(), subscription_start: parseDate, subscription_end: parseDate, amount_paid: z.coerce.number().min(0).max(10000000) });
+const leadSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), note: z.string().trim().max(2000).nullable().optional(), status: z.enum(['hot', 'warm', 'cold']), follow_up_date: parseDate });
 const dietSchema = z.object({ title: z.string().trim().min(2).max(160), type: z.enum(['veg', 'nonveg']), calories: z.string().trim().max(80), items: z.array(z.string().trim().min(1).max(200)).max(100) });
 const planSchema = z.object({ name: z.string().trim().min(2).max(120), duration_days: z.coerce.number().int().min(1).max(3650), price: z.coerce.number().min(0).max(10000000), description: z.string().trim().max(1000).nullable().optional() });
-const paymentSchema = z.object({ member_id: z.string().uuid(), member_name: z.string().trim().max(120).nullable().optional(), amount: z.coerce.number().positive().max(10000000), plan_name: z.string().trim().max(120).nullable().optional(), paid_at: z.string().datetime() });
+const paymentSchema = z.object({ member_id: z.string().uuid(), member_name: z.string().trim().max(120).nullable().optional(), amount: z.coerce.number().positive().max(10000000), plan_name: z.string().trim().max(120).nullable().optional(), paid_at: parseDate });
 const uuid = z.string().uuid();
 const parse = (schema, value) => schema.parse(value);
 
@@ -88,8 +94,21 @@ async function auth(req, res, next) {
   } catch { res.status(401).json({ error: 'Your session has expired. Please sign in again.' }); }
 }
 async function gymContext(req, res, next) {
-  const { rows } = await db.query('SELECT * FROM gyms WHERE owner_id = $1', [req.user.id]);
-  req.gym = rows[0] || null; next();
+  let { rows } = await db.query('SELECT * FROM gyms WHERE owner_id = $1', [req.user.id]);
+  if (!rows[0]) {
+    try {
+      const created = await db.query(
+        'INSERT INTO gyms (owner_id, name, currency) VALUES ($1, $2, $3) RETURNING *',
+        [req.user.id, 'FitnexGym', 'INR']
+      );
+      rows = created.rows;
+    } catch (_) {
+      const retry = await db.query('SELECT * FROM gyms WHERE owner_id = $1', [req.user.id]);
+      rows = retry.rows;
+    }
+  }
+  req.gym = rows[0] || null;
+  next();
 }
 function requireGym(req, res, next) { if (!req.gym) return res.status(409).json({ error: 'Complete gym setup first.' }); next(); }
 

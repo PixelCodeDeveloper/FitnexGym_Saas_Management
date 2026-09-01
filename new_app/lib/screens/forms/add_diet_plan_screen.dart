@@ -46,7 +46,7 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
       if (items.isEmpty) items.add('Balanced High-Protein Meal Plan');
 
       final plan = DietPlan(
-        id: 'diet_${now.millisecondsSinceEpoch}',
+        id: '',
         gymId: gymId,
         title: _titleController.text.trim(),
         type: _selectedType,
@@ -56,22 +56,15 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
       );
       final created = await DbService.addDietPlan(plan);
       if (mounted) Navigator.pop(context, created);
-    } catch (_) {
-      final now = DateTime.now();
-      final fallback = DietPlan(
-        id: 'diet_${now.millisecondsSinceEpoch}',
-        gymId: 'gym_demo',
-        title: _titleController.text.trim(),
-        type: _selectedType,
-        calories: '${_caloriesController.text.trim()} kcal',
-        items: [
-          if (_breakfastController.text.isNotEmpty) 'Breakfast: ${_breakfastController.text.trim()}',
-          if (_lunchController.text.isNotEmpty)     'Lunch: ${_lunchController.text.trim()}',
-          if (_dinnerController.text.isNotEmpty)    'Dinner: ${_dinnerController.text.trim()}',
-        ],
-        createdAt: now,
-      );
-      if (mounted) Navigator.pop(context, fallback);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not save diet plan to database: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

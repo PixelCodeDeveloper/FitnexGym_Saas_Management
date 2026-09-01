@@ -44,12 +44,11 @@ class Member {
   );
 
   Map<String, dynamic> toJson() => {
-    'gym_id': gymId,
     'name': name,
     'phone': phone,
-    'plan_id': planId,
-    'subscription_start': subscriptionStart.toIso8601String(),
-    'subscription_end': subscriptionEnd.toIso8601String(),
+    'plan_id': (planId != null && planId!.isNotEmpty && planId!.contains('-')) ? planId : null,
+    'subscription_start': subscriptionStart.toUtc().toIso8601String(),
+    'subscription_end': subscriptionEnd.toUtc().toIso8601String(),
     'amount_paid': amountPaid,
   };
 }
