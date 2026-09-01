@@ -63,36 +63,18 @@ class _MainLayoutState extends State<MainLayout> {
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.darkSurfaceAlt : AppTheme.lightSurfaceAlt,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: borderColor),
-              ),
-              child: Icon(Icons.menu_rounded, size: 20, color: txtPrimary),
-            ),
+            icon: Icon(Icons.notes_rounded, size: 26, color: txtPrimary),
+            tooltip: 'Menu',
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.fitness_center_rounded, size: 16, color: Colors.white),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _navItems[_currentIndex].label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+        title: Text(
+          _navItems[_currentIndex].label,
+          style: TextStyle(
+            color: txtPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
         ),
         actions: [
           // Pro Plan badge

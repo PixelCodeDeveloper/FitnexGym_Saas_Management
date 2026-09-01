@@ -72,7 +72,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
           'contact': '9999999999',
         },
         'theme': {
-          'color': '#00A8B5',
+          'color': '#00C4A0',
         },
       };
 
@@ -151,10 +151,16 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark   = Theme.of(context).brightness == Brightness.dark;
+    final bgColor  = isDark ? AppTheme.darkBg          : AppTheme.lightBg;
+    final txt      = isDark ? AppTheme.darkTextPrimary  : AppTheme.lightTextPrimary;
+    final txt2     = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
+    final muted    = isDark ? AppTheme.darkTextMuted    : AppTheme.lightTextMuted;
+
     if (_isCheckingStatus) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+      return Scaffold(
+        backgroundColor: bgColor,
+        body: const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
       );
     }
 
@@ -164,12 +170,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
         ? 'Unlock full access to FitnexGym SaaS to manage members, track monthly revenue, and power your gym operations.'
         : 'Your monthly subscription has expired. Renew your plan to continue managing members, tracking revenue, and growing your gym business.';
     final buttonText = isFirstTime ? 'Buy Subscription Now →' : 'Renew Subscription Now →';
-    final iconBgColor = isFirstTime ? AppTheme.primary.withValues(alpha: 0.1) : AppTheme.errorBg;
+    final iconBgColor = isFirstTime
+        ? AppTheme.primary.withValues(alpha: 0.15)
+        : (isDark ? const Color(0xFF3F1717) : AppTheme.errorBg);
     final iconColor = isFirstTime ? AppTheme.primary : AppTheme.error;
     final headerIcon = isFirstTime ? Icons.workspace_premium_rounded : Icons.lock_outline_rounded;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
@@ -192,10 +200,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
               Text(
                 titleText,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.textPrimary,
+                  color: txt,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -203,9 +211,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
               Text(
                 subtitleText,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
-                  color: AppTheme.textSecondary,
+                  color: txt2,
                   height: 1.6,
                 ),
               ),
@@ -269,6 +277,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           backgroundColor: Colors.white,
                           foregroundColor: AppTheme.primary,
                           padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           textStyle: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -295,18 +304,20 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                           decoration: TextDecoration.underline,
+                          decorationColor: Colors.white,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton(
+              const SizedBox(height: 20),
+              TextButton.icon(
                 onPressed: _handleSignOut,
-                child: const Text(
+                icon: Icon(Icons.logout_rounded, color: muted, size: 18),
+                label: Text(
                   'Sign Out',
-                  style: TextStyle(color: AppTheme.textMuted),
+                  style: TextStyle(color: muted, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -328,7 +339,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               backgroundColor: AppTheme.success,
             ),
           );
-          Navigator.pushReplacementNamed(context, '/main');
+          Navigator.pushReplacementNamed(context, '/dashboard');
         }
         return;
       }

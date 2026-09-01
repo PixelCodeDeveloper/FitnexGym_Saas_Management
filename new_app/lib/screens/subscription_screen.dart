@@ -55,8 +55,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final orderData = await DbService.createRazorpayOrder();
 
       final orderId = orderData['orderId'] as String;
-      final keyId = orderData['keyId'] as String? ?? 'rzp_test_mock_key_id';
-      final amount = orderData['amount'] as int? ?? 99900;
+      final keyId   = orderData['keyId'] as String? ?? 'rzp_test_mock_key_id';
+      final amount  = orderData['amount'] as int? ?? 99900;
 
       _pendingOrderId = orderId;
 
@@ -71,7 +71,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           'contact': '9999999999',
         },
         'theme': {
-          'color': '#00A8B5',
+          'color': '#00C4A0',
         },
       };
 
@@ -145,6 +145,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark   = Theme.of(context).brightness == Brightness.dark;
+    final bgColor  = isDark ? AppTheme.darkBg          : AppTheme.lightBg;
+    final cardBg   = isDark ? AppTheme.darkCard         : Colors.white;
+    final border   = isDark ? AppTheme.darkBorder       : AppTheme.lightBorder;
+    final txt      = isDark ? AppTheme.darkTextPrimary  : AppTheme.lightTextPrimary;
+    final txt2     = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
+    final muted    = isDark ? AppTheme.darkTextMuted    : AppTheme.lightTextMuted;
+    final barBg    = isDark ? AppTheme.darkSurface      : Colors.white;
+    final fillBg   = isDark ? AppTheme.darkSurfaceAlt   : AppTheme.lightSurfaceAlt;
+
     final sub = _subInfo ?? SubscriptionInfo.fallbackActive(days: 30);
     final isFirstTime = sub.isFirstTime;
     final isExpired = !sub.active;
@@ -158,21 +168,26 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         : (isExpired ? 'Renew Subscription Now →' : 'Extend Subscription Now →');
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Subscription & Billing'),
+        backgroundColor: barBg,
+        surfaceTintColor: Colors.transparent,
+        title: Text('Subscription & Billing', style: TextStyle(color: txt, fontWeight: FontWeight.w700, fontSize: 17)),
+        iconTheme: IconThemeData(color: txt),
         centerTitle: false,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh_rounded, color: txt),
             onPressed: _loadSubscription,
             tooltip: 'Refresh Status',
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : RefreshIndicator(
+              color: AppTheme.primary,
               onRefresh: _loadSubscription,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
@@ -181,17 +196,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Active Subscription Card ──
-                    _buildActivePlanCard(),
+                    _buildActivePlanCard(isDark, txt2, muted),
 
                     const SizedBox(height: 28),
 
                     // ── Features & Extensions Section ──
                     Text(
                       sectionTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                        color: txt,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -205,6 +220,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           : 'Add 30 days onto your subscription period.',
                       isRecommended: true,
                       buttonText: primaryButtonLabel,
+                      isDark: isDark,
+                      cardBg: cardBg,
+                      border: border,
+                      txt: txt,
+                      txt2: txt2,
+                      fillBg: fillBg,
                     ),
 
                     const SizedBox(height: 16),
@@ -216,38 +237,44 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       description: 'Save over 15% with annual billing + priority support.',
                       isRecommended: false,
                       buttonText: 'Select Annual Package',
+                      isDark: isDark,
+                      cardBg: cardBg,
+                      border: border,
+                      txt: txt,
+                      txt2: txt2,
+                      fillBg: fillBg,
                     ),
 
                     const SizedBox(height: 28),
 
                     // ── Billing History & Support Info ──
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: cardBg,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.divider),
+                        border: Border.all(color: border),
                       ),
-                      child: const Column(
+                      child: Column(
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.verified_user_outlined, color: AppTheme.primary, size: 20),
-                              SizedBox(width: 10),
+                              const Icon(Icons.verified_user_outlined, color: AppTheme.primary, size: 20),
+                              const SizedBox(width: 10),
                               Text(
                                 'Secure Payments by Razorpay',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 14,
-                                  color: AppTheme.textPrimary,
+                                  color: txt,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
                             'All subscription payments are encrypted with 256-bit SSL encryption. Your plan extensions stack automatically on top of existing remaining days.',
-                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.5),
+                            style: TextStyle(color: txt2, fontSize: 13, height: 1.5),
                           ),
                         ],
                       ),
@@ -259,7 +286,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Widget _buildActivePlanCard() {
+  Widget _buildActivePlanCard(bool isDark, Color txt2, Color muted) {
     final sub = _subInfo ?? SubscriptionInfo.fallbackActive(days: 30);
     final isActive = sub.active;
     final days = sub.daysRemaining;
@@ -275,19 +302,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     final planBadgeName = sub.isFirstTime ? 'GET STARTED' : sub.planName.toUpperCase();
 
+    final errorBgColor = isDark ? const Color(0xFF3F1717) : AppTheme.errorBg;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: isActive ? AppTheme.primaryGradient : null,
-        color: isActive ? null : AppTheme.errorBg,
+        color: isActive ? null : errorBgColor,
         boxShadow: isActive
             ? [
                 BoxShadow(
-                  color: AppTheme.primary.withValues(alpha: 0.3),
+                  color: AppTheme.primary.withValues(alpha: isDark ? 0.35 : 0.2),
                   blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  offset: const Offset(0, 8),
                 )
               ]
             : null,
@@ -362,7 +391,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: isActive ? Colors.white70 : AppTheme.textSecondary,
+                  color: isActive ? Colors.white70 : txt2,
                 ),
               ),
             ],
@@ -373,13 +402,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               Icon(
                 Icons.event_outlined,
                 size: 16,
-                color: isActive ? Colors.white70 : AppTheme.textMuted,
+                color: isActive ? Colors.white70 : muted,
               ),
               const SizedBox(width: 6),
               Text(
                 'Valid until $expFormatted',
                 style: TextStyle(
-                  color: isActive ? Colors.white.withValues(alpha: 0.9) : AppTheme.textSecondary,
+                  color: isActive ? Colors.white.withValues(alpha: 0.9) : txt2,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -398,14 +427,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     required String description,
     required bool isRecommended,
     required String buttonText,
+    required bool isDark,
+    required Color cardBg,
+    required Color border,
+    required Color txt,
+    required Color txt2,
+    required Color fillBg,
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isRecommended ? AppTheme.primary : AppTheme.divider,
+          color: isRecommended ? AppTheme.primary : border,
           width: isRecommended ? 2 : 1,
         ),
       ),
@@ -420,10 +455,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: txt,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -431,7 +466,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     duration,
                     style: const TextStyle(
                       fontSize: 13,
-                      color: AppTheme.primaryDark,
+                      color: AppTheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -439,10 +474,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               ),
               Text(
                 price,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.textPrimary,
+                  color: txt,
                 ),
               ),
             ],
@@ -450,7 +485,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           const SizedBox(height: 10),
           Text(
             description,
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
+            style: TextStyle(color: txt2, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -458,22 +493,23 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             child: ElevatedButton(
               onPressed: _isProcessingPayment ? null : _startPayment,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isRecommended ? AppTheme.primary : AppTheme.surfaceAlt,
-                foregroundColor: isRecommended ? Colors.white : AppTheme.textPrimary,
-                elevation: isRecommended ? 2 : 0,
+                backgroundColor: isRecommended ? AppTheme.primary : fillBg,
+                foregroundColor: isRecommended ? Colors.white : txt,
+                elevation: isRecommended ? 0 : 0,
                 padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: _isProcessingPayment
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : Text(
                       buttonText,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: isRecommended ? Colors.white : AppTheme.textPrimary,
+                        color: isRecommended ? Colors.white : txt,
                       ),
                     ),
             ),
