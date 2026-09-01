@@ -5,6 +5,7 @@ import '../models/member.dart';
 import '../services/db_service.dart';
 import '../theme/app_theme.dart';
 import 'forms/add_member_screen.dart';
+import 'forms/edit_member_screen.dart';
 import 'forms/renew_member_screen.dart';
 
 class MembersScreen extends StatefulWidget {
@@ -68,6 +69,19 @@ class _MembersScreenState extends State<MembersScreen> {
       MaterialPageRoute(builder: (_) => const AddMemberScreen()),
     );
     if (newMember != null) setState(() => _members.insert(0, newMember));
+  }
+
+  Future<void> _openEditMemberScreen(Member member) async {
+    final updated = await Navigator.push<Member>(
+      context,
+      MaterialPageRoute(builder: (_) => EditMemberScreen(member: member)),
+    );
+    if (updated != null) {
+      setState(() {
+        final idx = _members.indexWhere((m) => m.id == member.id);
+        if (idx != -1) _members[idx] = updated;
+      });
+    }
   }
 
   Future<void> _openRenewScreen(Member member) async {
@@ -426,9 +440,16 @@ class _MembersScreenState extends State<MembersScreen> {
                     ],
                   ),
                 ),
+                // Edit
+                IconButton(
+                  icon: Icon(Icons.edit_outlined, size: 20, color: AppTheme.primary),
+                  tooltip: 'Edit Member',
+                  onPressed: () => _openEditMemberScreen(m),
+                ),
                 // Delete
                 IconButton(
                   icon: Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.error.withValues(alpha: 0.7)),
+                  tooltip: 'Delete Member',
                   onPressed: () => _confirmDelete(m),
                 ),
               ],
