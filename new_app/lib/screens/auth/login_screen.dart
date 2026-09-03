@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../utils/input_validator.dart';
+import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -43,6 +44,43 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleSendOtp() async {
+    if (_emailController.text.trim().isEmpty ||
+        InputValidator.validateEmail(_emailController.text.trim()) != null) {
+      setState(() => _errorMessage = 'Please enter a valid email address.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final email = _emailController.text.trim();
+    final purpose = _isSignUp ? 'signup' : 'login';
+    final password = _passwordController.text.trim();
+
+    try {
+      await AuthService.sendOtp(email, purpose: purpose);
+      if (mounted) {
+        Navigator.pushNamed(
+          context,
+          '/otp-verify',
+          arguments: OtpVerificationArgs(
+            email: email,
+            purpose: purpose,
+            password: password.isNotEmpty ? password : null,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(
+        () => _errorMessage = e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _handleEmailAuth() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -75,8 +113,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+    final textPrimary = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
+    final textSecondary = isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary;
+    final textMuted = isDark ? AppTheme.darkTextMuted : AppTheme.lightTextMuted;
+    final border = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+    final divider = isDark ? AppTheme.darkDivider : AppTheme.lightDivider;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -90,28 +136,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: BoxDecoration(
                     gradient: AppTheme.primaryGradient,
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: AppTheme.primaryGlow,
                   ),
-                  child: const Icon(
-                    Icons.fitness_center_rounded,
-                    size: 48,
-                    color: Colors.white,
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Gym Owner SaaS',
+                Text(
+                  'Fitnex',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
+                    color: textPrimary,
                     letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Manage members, track revenue, grow your gym.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                  style: TextStyle(color: textSecondary, fontSize: 14),
                 ),
                 const SizedBox(height: 40),
 
@@ -120,37 +168,37 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: _isLoading ? null : _handleGoogleSignIn,
-                    icon: const Text(
+                    icon: Text(
                       'G',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
+                        color: textPrimary,
                       ),
                     ),
-                    label: const Text('Continue with Google'),
+                    label: Text('Continue with Google', style: TextStyle(color: textPrimary)),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: AppTheme.border),
+                      side: BorderSide(color: border),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    const Expanded(child: Divider(color: AppTheme.divider)),
+                    Expanded(child: Divider(color: divider)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         'OR',
                         style: TextStyle(
-                          color: AppTheme.textMuted,
+                          color: textMuted,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    const Expanded(child: Divider(color: AppTheme.divider)),
+                    Expanded(child: Divider(color: divider)),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -164,9 +212,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         validator: InputValidator.validateEmail,
+                        style: TextStyle(color: textPrimary),
                         decoration: _inputDecoration(
                           'Email address',
                           Icons.email_outlined,
+                          isDark: isDark,
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -176,9 +226,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         validator: (val) => (val == null || val.length < 12)
                             ? 'Use at least 12 characters'
                             : null,
+                        style: TextStyle(color: textPrimary),
                         decoration: _inputDecoration(
                           'Password',
                           Icons.lock_outline,
+                          isDark: isDark,
                         ),
                       ),
                     ],
@@ -199,12 +251,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
 
                 const SizedBox(height: 20),
+
+                // Email OTP Verification Button
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleEmailAuth,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _handleSendOtp,
+                    icon: const Icon(Icons.mark_email_read_rounded, size: 20),
+                    label: Text(_isSignUp ? 'Sign Up with Email OTP' : 'Sign In with Email OTP'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: AppTheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Password Button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _isLoading ? null : _handleEmailAuth,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: border),
                     ),
                     child: _isLoading
                         ? const SizedBox(
@@ -212,10 +282,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppTheme.primary,
                             ),
                           )
-                        : Text(_isSignUp ? 'Create Account' : 'Sign In'),
+                        : Text(
+                            _isSignUp ? 'Create with Password' : 'Sign In with Password',
+                            style: TextStyle(color: textPrimary),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -225,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _isSignUp
                         ? 'Already have an account? Sign In'
                         : "Don't have an account? Sign Up",
-                    style: const TextStyle(color: AppTheme.primary),
+                    style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -236,20 +309,24 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint, IconData icon) {
+  InputDecoration _inputDecoration(String hint, IconData icon, {required bool isDark}) {
+    final border = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+    final surface = isDark ? AppTheme.darkSurfaceAlt : AppTheme.lightSurfaceAlt;
+    final muted = isDark ? AppTheme.darkTextMuted : AppTheme.lightTextMuted;
+
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppTheme.textMuted),
-      prefixIcon: Icon(icon, color: AppTheme.textMuted),
+      hintStyle: TextStyle(color: muted),
+      prefixIcon: Icon(icon, color: muted),
       filled: true,
-      fillColor: AppTheme.surfaceAlt,
+      fillColor: surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderSide: BorderSide(color: border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppTheme.divider),
+        borderSide: BorderSide(color: border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -262,3 +339,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+

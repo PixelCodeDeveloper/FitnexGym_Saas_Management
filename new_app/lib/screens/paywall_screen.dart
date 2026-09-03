@@ -52,7 +52,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   Future<void> _startPayment() async {
     setState(() => _isLoading = true);
     try {
-      final userEmail = await AuthService.userEmail ?? 'owner@fitnexgym.com';
+      final userEmail = await AuthService.userEmail ?? 'owner@fitnex.com';
       final orderData = await DbService.createRazorpayOrder();
 
       final orderId = orderData['orderId'] as String;
@@ -64,7 +64,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       final options = {
         'key': keyId,
         'amount': amount,
-        'name': 'FitnexGym SaaS Pro',
+        'name': 'Fitnex Pro',
         'description': 'Monthly Pro Plan Subscription (30 Days)',
         'order_id': orderId.startsWith('order_demo') ? null : orderId,
         'prefill': {
@@ -152,29 +152,25 @@ class _PaywallScreenState extends State<PaywallScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark   = Theme.of(context).brightness == Brightness.dark;
-    final bgColor  = isDark ? AppTheme.darkBg          : AppTheme.lightBg;
-    final txt      = isDark ? AppTheme.darkTextPrimary  : AppTheme.lightTextPrimary;
-    final txt2     = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
-    final muted    = isDark ? AppTheme.darkTextMuted    : AppTheme.lightTextMuted;
+    final bgColor  = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final txt      = isDark ? Colors.white : const Color(0xFF0F172A);
+    final txt2     = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+    final muted    = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    const activeCyan = Color(0xFF00E5C0);
 
     if (_isCheckingStatus) {
       return Scaffold(
         backgroundColor: bgColor,
-        body: const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+        body: const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2)),
       );
     }
 
     final isFirstTime = _subInfo?.isFirstTime ?? false;
     final titleText = isFirstTime ? 'Buy Pro Subscription' : 'Subscription Expired';
     final subtitleText = isFirstTime
-        ? 'Unlock full access to FitnexGym SaaS to manage members, track monthly revenue, and power your gym operations.'
+        ? 'Unlock full access to Fitnex to manage members, track monthly revenue, and power your gym operations.'
         : 'Your monthly subscription has expired. Renew your plan to continue managing members, tracking revenue, and growing your gym business.';
     final buttonText = isFirstTime ? 'Buy Subscription Now →' : 'Renew Subscription Now →';
-    final iconBgColor = isFirstTime
-        ? AppTheme.primary.withValues(alpha: 0.15)
-        : (isDark ? const Color(0xFF3F1717) : AppTheme.errorBg);
-    final iconColor = isFirstTime ? AppTheme.primary : AppTheme.error;
-    final headerIcon = isFirstTime ? Icons.workspace_premium_rounded : Icons.lock_outline_rounded;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -187,13 +183,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: iconBgColor,
+                  color: activeCyan.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  headerIcon,
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
                   size: 56,
-                  color: iconColor,
+                  color: activeCyan,
                 ),
               ),
               const SizedBox(height: 28),
@@ -202,7 +198,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 26,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.bold,
                   color: txt,
                   letterSpacing: -0.5,
                 ),
@@ -218,112 +214,113 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 ),
               ),
               const SizedBox(height: 36),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: AppTheme.primaryGradient,
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Pro Plan',
+
+              // ── Price Header (Flat) ──
+              Column(
+                children: [
+                  Text(
+                    'PRO MONTHLY PLAN',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: activeCyan,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '₹999',
+                    style: const TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      color: activeCyan,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  Text(
+                    'for 30 days full access',
+                    style: TextStyle(fontSize: 13, color: muted),
+                  ),
+                  const SizedBox(height: 24),
+                  Column(
+                    children: [
+                      _featureRow('Unlimited Member Registration', txt),
+                      const SizedBox(height: 8),
+                      _featureRow('Automated WhatsApp & SMS Reminders', txt),
+                      const SizedBox(height: 8),
+                      _featureRow('Diet & Membership Template Manager', txt),
+                      const SizedBox(height: 8),
+                      _featureRow('Real-Time Revenue Analytics & Reports', txt),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _startPayment,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: activeCyan,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _isLoading ? null : _handleRestorePurchase,
+                    child: const Text(
+                      'Already Paid? Restore Active Plan 🔄',
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white70,
+                        color: activeCyan,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                        decorationColor: activeCyan,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      '₹999',
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -1,
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: _handleSignOut,
+                    icon: Icon(Icons.logout_rounded, color: muted, size: 18),
+                    label: Text(
+                      'Sign Out',
+                      style: TextStyle(color: muted, fontWeight: FontWeight.bold),
                     ),
-                    const Text(
-                      '/month',
-                      style: TextStyle(fontSize: 14, color: Colors.white70),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Column(
-                        children: [
-                          _FeatureRow('Unlimited Members'),
-                          SizedBox(height: 6),
-                          _FeatureRow('Revenue Analytics'),
-                          SizedBox(height: 6),
-                          _FeatureRow('WhatsApp Integration'),
-                          SizedBox(height: 6),
-                          _FeatureRow('Diet Plan Module'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _startPayment,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppTheme.primary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppTheme.primary,
-                                ),
-                              )
-                            : Text(buttonText),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: _isLoading ? null : _handleRestorePurchase,
-                      child: const Text(
-                        'Already Paid? Restore Active Plan 🔄',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          decoration: TextDecoration.underline,
-                          decorationColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextButton.icon(
-                onPressed: _handleSignOut,
-                icon: Icon(Icons.logout_rounded, color: muted, size: 18),
-                label: Text(
-                  'Sign Out',
-                  style: TextStyle(color: muted, fontWeight: FontWeight.w600),
-                ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _featureRow(String label, Color txt) {
+    const activeCyan = Color(0xFF00E5C0);
+    return Row(
+      children: [
+        const Icon(Icons.check_circle_rounded, color: activeCyan, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
     );
   }
 
@@ -346,21 +343,5 @@ class _PaywallScreenState extends State<PaywallScreen> {
     } catch (_) {} finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-}
-
-class _FeatureRow extends StatelessWidget {
-  final String text;
-  const _FeatureRow(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
-        const SizedBox(width: 8),
-        Text(text, style: const TextStyle(color: Colors.white, fontSize: 14)),
-      ],
-    );
   }
 }

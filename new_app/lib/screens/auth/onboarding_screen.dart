@@ -64,9 +64,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+    final textPrimary = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
+    final textMuted = isDark ? AppTheme.darkTextMuted : AppTheme.lightTextMuted;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Setup Your Gym')),
+      backgroundColor: bg,
+      appBar: AppBar(
+        title: const Text('Setup Your Gym'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -80,6 +89,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 decoration: BoxDecoration(
                   gradient: AppTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: AppTheme.primaryGlow,
                 ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,10 +124,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'GYM NAME *',
                       style: TextStyle(
-                        color: AppTheme.textMuted,
+                        color: textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
@@ -127,13 +137,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     TextFormField(
                       controller: _nameController,
                       validator: InputValidator.validateName,
-                      decoration: _inputDecoration('e.g. Iron Fitness Studio'),
+                      style: TextStyle(color: textPrimary),
+                      decoration: _inputDecoration('e.g. Iron Fitness Studio', isDark: isDark),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'ADDRESS',
                       style: TextStyle(
-                        color: AppTheme.textMuted,
+                        color: textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
@@ -142,16 +153,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _addressController,
+                      style: TextStyle(color: textPrimary),
                       decoration: _inputDecoration(
                         'e.g. 123 Fitness Street, New Delhi',
+                        isDark: isDark,
                       ),
                       maxLines: 2,
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'CONTACT NUMBER',
                       style: TextStyle(
-                        color: AppTheme.textMuted,
+                        color: textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
@@ -166,7 +179,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         LengthLimitingTextInputFormatter(10),
                       ],
                       validator: InputValidator.validatePhone,
-                      decoration: _inputDecoration('e.g. 9876543210'),
+                      style: TextStyle(color: textPrimary),
+                      decoration: _inputDecoration('e.g. 9876543210', isDark: isDark),
                     ),
                   ],
                 ),
@@ -199,19 +213,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(String hint, {required bool isDark}) {
+    final border = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+    final surface = isDark ? AppTheme.darkSurfaceAlt : AppTheme.lightSurfaceAlt;
+    final muted = isDark ? AppTheme.darkTextMuted : AppTheme.lightTextMuted;
+
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppTheme.textMuted),
+      hintStyle: TextStyle(color: muted),
       filled: true,
-      fillColor: AppTheme.surfaceAlt,
+      fillColor: surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderSide: BorderSide(color: border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppTheme.divider),
+        borderSide: BorderSide(color: border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -224,3 +242,4 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
+

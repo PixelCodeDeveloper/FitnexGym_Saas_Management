@@ -50,6 +50,31 @@ class AuthService {
         'password': password,
       });
 
+  static Future<void> sendOtp(String email, {String purpose = 'signup'}) async {
+    await ApiClient.post('/v1/auth/send-otp', {
+      'email': email,
+      'purpose': purpose,
+    });
+  }
+
+  static Future<AuthSession> verifyOtp({
+    required String email,
+    required String otp,
+    required String purpose,
+    String? password,
+  }) async {
+    final Map<String, String> body = {
+      'email': email,
+      'otp': otp,
+      'purpose': purpose,
+    };
+    if (password != null && password.isNotEmpty) {
+      body['password'] = password;
+    }
+    return _authenticate('/v1/auth/verify-otp', body);
+  }
+
+
   static Future<AuthSession> signInWithGoogle() async {
     GoogleSignInAccount? account;
     try {

@@ -4,6 +4,7 @@ import 'theme/app_theme.dart';
 import 'theme/theme_notifier.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
+import 'screens/auth/otp_verification_screen.dart';
 import 'screens/main_layout.dart';
 import 'screens/paywall_screen.dart';
 import 'screens/subscription_screen.dart';
@@ -24,8 +25,8 @@ class GymOwnerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
-      builder: (_, mode, __) => MaterialApp(
-        title: 'FitnexGym',
+      builder: (_, mode, child) => MaterialApp(
+        title: 'Fitnex',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
@@ -33,6 +34,7 @@ class GymOwnerApp extends StatelessWidget {
         home: const AuthCheckScreen(),
         routes: {
           '/login':      (_) => const LoginScreen(),
+          '/otp-verify': (_) => const OtpVerificationScreen(),
           '/onboarding': (_) => const OnboardingScreen(),
           '/dashboard':  (_) => const MainLayout(),
           '/paywall':    (_) => const Scaffold(body: PaywallScreen()),
@@ -43,6 +45,7 @@ class GymOwnerApp extends StatelessWidget {
     );
   }
 }
+
 
 /// Splash / auth-check screen
 class AuthCheckScreen extends StatefulWidget {
@@ -82,10 +85,11 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: AppTheme.primaryGlow,
               ),
-              child: const Icon(
-                Icons.fitness_center_rounded,
-                size: 52,
-                color: Colors.white,
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 64,
+                height: 64,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 28),
@@ -95,7 +99,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'FitnexGym',
+              'Fitnex',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: AppTheme.primary,
                 fontWeight: FontWeight.w800,
@@ -108,3 +112,4 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
     );
   }
 }
+

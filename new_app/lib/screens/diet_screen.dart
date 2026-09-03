@@ -87,125 +87,106 @@ class _DietScreenState extends State<DietScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark  = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppTheme.darkBg          : AppTheme.lightBg;
-    final cardBg  = isDark ? AppTheme.darkCard         : Colors.white;
-    final border  = isDark ? AppTheme.darkBorder       : AppTheme.lightBorder;
-    final footBg  = isDark ? AppTheme.darkSurfaceAlt   : AppTheme.lightSurfaceAlt;
-    final txt     = isDark ? AppTheme.darkTextPrimary  : AppTheme.lightTextPrimary;
-    final txt2    = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
-    final muted   = isDark ? AppTheme.darkTextMuted    : AppTheme.lightTextMuted;
+    final bgColor = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final border  = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
+    final txt     = isDark ? Colors.white : const Color(0xFF0F172A);
+    final txt2    = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+    final muted   = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    const activeCyan = Color(0xFF00E5C0);
 
     return Scaffold(
       backgroundColor: bgColor,
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))
+          ? const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2))
           : _plans.isEmpty
               ? _emptyState(isDark, txt, muted)
               : RefreshIndicator(
-                  color: AppTheme.primary,
+                  color: activeCyan,
                   onRefresh: _loadPlans,
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     itemCount: _plans.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
+                    separatorBuilder: (_, i) => Divider(height: 1, color: border),
                     itemBuilder: (context, index) =>
-                        _dietCard(_plans[index], isDark, cardBg, border, footBg, txt, txt2, muted),
+                        _dietTile(_plans[index], isDark, border, txt, txt2, muted),
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddDietPlanScreen,
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: activeCyan,
+        foregroundColor: Colors.black,
         elevation: 0,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('New Diet Plan', style: TextStyle(fontWeight: FontWeight.w700)),
+        label: const Text('New Diet Plan', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _dietCard(
+  Widget _dietTile(
     DietPlan plan, bool isDark,
-    Color cardBg, Color border, Color footBg,
+    Color border,
     Color txt, Color txt2, Color muted,
   ) {
     final isVeg    = plan.type.toLowerCase() == 'veg';
-    final accent   = isVeg ? AppTheme.success : AppTheme.error;
-    final iconBg   = isVeg
-        ? (isDark ? AppTheme.success.withValues(alpha: 0.15) : AppTheme.successBg)
-        : (isDark ? AppTheme.error.withValues(alpha: 0.15)   : AppTheme.errorBg);
+    final accent   = isVeg ? const Color(0xFF22C55E) : const Color(0xFFEF4444);
     final typeIcon = isVeg ? Icons.eco_rounded : Icons.set_meal_rounded;
     final typeLabel= isVeg ? '🥗 Vegetarian' : '🍗 Non-Veg';
+    const activeCyan = Color(0xFF00E5C0);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: border),
-        boxShadow: isDark ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
-            child: Row(
-              children: [
-                // Icon
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(14)),
-                  child: Icon(typeIcon, color: accent, size: 24),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(plan.title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: txt)),
-                      const SizedBox(height: 4),
-                      Row(children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: isDark ? 0.15 : 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(typeLabel, style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w600)),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: accent.withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: Icon(typeIcon, color: accent, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(plan.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt)),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppTheme.warning.withValues(alpha: isDark ? 0.15 : 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const Icon(Icons.local_fire_department_rounded, size: 12, color: AppTheme.warning),
-                            const SizedBox(width: 4),
-                            Text(plan.calories, style: const TextStyle(color: AppTheme.warning, fontSize: 11, fontWeight: FontWeight.w600)),
-                          ]),
+                        child: Text(typeLabel, style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ]),
-                    ],
-                  ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.local_fire_department_rounded, size: 12, color: Color(0xFFF59E0B)),
+                          const SizedBox(width: 4),
+                          Text(plan.calories, style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 11, fontWeight: FontWeight.bold)),
+                        ]),
+                      ),
+                    ]),
+                  ],
                 ),
-                IconButton(
-                  icon: Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.error.withValues(alpha: 0.7)),
-                  onPressed: () => _confirmDelete(plan),
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded, size: 20, color: const Color(0xFFEF4444).withValues(alpha: 0.8)),
+                onPressed: () => _confirmDelete(plan),
+              ),
+            ],
           ),
-
-          // ── Meal items ──
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            decoration: BoxDecoration(
-              color: footBg,
-              border: Border.symmetric(horizontal: BorderSide(color: border)),
-            ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: plan.items.map((item) => Padding(
@@ -227,41 +208,46 @@ class _DietScreenState extends State<DietScreen> {
               )).toList(),
             ),
           ),
-
-          // ── Actions ──
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _copyPlan(plan),
-                  icon: const Icon(Icons.copy_rounded, size: 15),
-                  label: const Text('Copy', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primary,
-                    side: BorderSide(color: AppTheme.primary.withValues(alpha: 0.5)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
+          const SizedBox(height: 8),
+          Row(children: [
+            InkWell(
+              onTap: () => _copyPlan(plan),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: activeCyan.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.copy_rounded, size: 13, color: activeCyan),
+                    SizedBox(width: 4),
+                    Text('Copy', style: TextStyle(color: activeCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _shareWhatsApp(plan),
-                  icon: const Icon(Icons.send_rounded, size: 15),
-                  label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.success,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => _shareWhatsApp(plan),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF22C55E).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.send_rounded, size: 13, color: Color(0xFF22C55E)),
+                    SizedBox(width: 4),
+                    Text('WhatsApp', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
-            ]),
-          ),
+            ),
+          ]),
         ],
       ),
     );
@@ -274,13 +260,13 @@ class _DietScreenState extends State<DietScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: AppTheme.primaryGradient,
+            color: const Color(0xFF00E5C0).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Icon(Icons.restaurant_menu_rounded, size: 36, color: Colors.white),
+          child: const Icon(Icons.restaurant_menu_rounded, size: 36, color: Color(0xFF00E5C0)),
         ),
         const SizedBox(height: 16),
-        Text('No diet plans yet', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: txt)),
+        Text('No diet plans yet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: txt)),
         const SizedBox(height: 6),
         Text('Create your first diet template to assign to members.', style: TextStyle(color: muted, fontSize: 13), textAlign: TextAlign.center),
       ],

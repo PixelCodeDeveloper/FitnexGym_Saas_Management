@@ -236,15 +236,14 @@ class _MembersScreenState extends State<MembersScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark    = Theme.of(context).brightness == Brightness.dark;
-    final bgColor   = isDark ? AppTheme.darkBg          : AppTheme.lightBg;
-    final barBg     = isDark ? AppTheme.darkSurface      : AppTheme.lightSurface;
-    final cardBg    = isDark ? AppTheme.darkCard         : AppTheme.lightSurface;
-    final border    = isDark ? AppTheme.darkBorder       : AppTheme.lightBorder;
-    final footerBg  = isDark ? AppTheme.darkSurfaceAlt   : AppTheme.lightSurfaceAlt;
-    final txt       = isDark ? AppTheme.darkTextPrimary  : AppTheme.lightTextPrimary;
-    final txt2      = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
-    final muted     = isDark ? AppTheme.darkTextMuted    : AppTheme.lightTextMuted;
-    final inputFill = isDark ? AppTheme.darkSurfaceAlt   : AppTheme.lightSurfaceAlt;
+    final bgColor   = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final barBg     = isDark ? const Color(0xFF08101C) : Colors.white;
+    final border    = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
+    final txt       = isDark ? Colors.white : const Color(0xFF0F172A);
+    final txt2      = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+    final muted     = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    final inputFill = isDark ? const Color(0xFF131D2D) : const Color(0xFFF1F5F9);
+    const activeCyan= Color(0xFF00E5C0);
 
     final filtered = _members.where((m) {
       final q = _searchQuery.toLowerCase();
@@ -270,6 +269,7 @@ class _MembersScreenState extends State<MembersScreen> {
                   style: TextStyle(color: txt, fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Search by name or phone…',
+                    hintStyle: TextStyle(color: muted, fontSize: 13),
                     prefixIcon: Icon(Icons.search_rounded, color: muted),
                     filled: true,
                     fillColor: inputFill,
@@ -284,7 +284,7 @@ class _MembersScreenState extends State<MembersScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                      borderSide: const BorderSide(color: activeCyan, width: 2),
                     ),
                   ),
                 ),
@@ -294,7 +294,7 @@ class _MembersScreenState extends State<MembersScreen> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _filters.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (context, i) => const SizedBox(width: 8),
                     itemBuilder: (context, i) {
                       final f = _filters[i];
                       final sel = _selectedFilter == f;
@@ -304,17 +304,16 @@ class _MembersScreenState extends State<MembersScreen> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                           decoration: BoxDecoration(
-                            gradient: sel ? AppTheme.primaryGradient : null,
-                            color: sel ? null : footerBg,
+                            color: sel ? activeCyan : inputFill,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: sel ? Colors.transparent : border,
+                              color: sel ? activeCyan : border,
                             ),
                           ),
                           child: Text(
                             f,
                             style: TextStyle(
-                              color: sel ? Colors.white : txt2,
+                              color: sel ? Colors.black : txt2,
                               fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
                               fontSize: 13,
                             ),
@@ -335,26 +334,26 @@ class _MembersScreenState extends State<MembersScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
               child: Row(
                 children: [
-                  Text('${filtered.length} members', style: TextStyle(color: txt2, fontSize: 13, fontWeight: FontWeight.w500)),
+                  Text('${filtered.length} members', style: TextStyle(color: txt2, fontSize: 13, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
 
-          // ── List ──
+          // ── Flat Member List ──
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))
+                ? const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2))
                 : filtered.isEmpty
                     ? _emptyState(isDark, txt, muted)
                     : RefreshIndicator(
-                        color: AppTheme.primary,
+                        color: activeCyan,
                         onRefresh: _loadMembers,
                         child: ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
                           itemCount: filtered.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          separatorBuilder: (context, idx) => Divider(height: 1, color: border),
                           itemBuilder: (context, index) =>
-                              _memberCard(filtered[index], isDark, cardBg, border, footerBg, txt, txt2, muted),
+                              _memberTile(filtered[index], isDark, border, txt, txt2, muted),
                         ),
                       ),
           ),
@@ -362,18 +361,18 @@ class _MembersScreenState extends State<MembersScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddMemberScreen,
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: activeCyan,
+        foregroundColor: Colors.black,
         elevation: 0,
         icon: const Icon(Icons.person_add_alt_1_rounded),
-        label: const Text('Add Member', style: TextStyle(fontWeight: FontWeight.w700)),
+        label: const Text('Add Member', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _memberCard(
+  Widget _memberTile(
     Member m, bool isDark,
-    Color cardBg, Color border, Color footerBg,
+    Color border,
     Color txt, Color txt2, Color muted,
   ) {
     final statusColor  = _statusColor(m.status);
@@ -382,158 +381,128 @@ class _MembersScreenState extends State<MembersScreen> {
     final initials     = m.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
     final daysLeft     = m.subscriptionEnd.difference(DateTime.now()).inDays;
     final expStr       = DateFormat('dd MMM yyyy').format(m.subscriptionEnd);
+    const activeCyan   = Color(0xFF00E5C0);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: border),
-        boxShadow: isDark ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         children: [
-          // Top row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
-            child: Row(
-              children: [
-                // Avatar
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initials.isEmpty ? 'M' : initials,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
-                    ),
+          Row(
+            children: [
+              // Avatar
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: activeCyan.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    initials.isEmpty ? 'M' : initials,
+                    style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(m.name, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: txt)),
-                      const SizedBox(height: 3),
-                      Text('+91 ${m.phone}', style: TextStyle(color: txt2, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                // Status pill
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: isDark ? 0.15 : 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(statusIcon, size: 11, color: statusColor),
-                      const SizedBox(width: 4),
-                      Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-                // Edit
-                IconButton(
-                  icon: Icon(Icons.edit_outlined, size: 20, color: AppTheme.primary),
-                  tooltip: 'Edit Member',
-                  onPressed: () => _openEditMemberScreen(m),
-                ),
-                // Delete
-                IconButton(
-                  icon: Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.error.withValues(alpha: 0.7)),
-                  tooltip: 'Delete Member',
-                  onPressed: () => _confirmDelete(m),
-                ),
-              ],
-            ),
-          ),
-
-          // Expiry + amount row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today_rounded, size: 13, color: muted),
-                const SizedBox(width: 5),
-                Text('Exp: $expStr', style: TextStyle(color: txt2, fontSize: 12)),
-                const SizedBox(width: 12),
-                if (daysLeft >= 0) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: _statusColor(m.status).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '$daysLeft days left',
-                      style: TextStyle(color: _statusColor(m.status), fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                Text('₹${m.amountPaid.toStringAsFixed(0)}', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700, fontSize: 13)),
-              ],
-            ),
-          ),
-
-          // Action strip
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: footerBg,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(18),
-                bottomRight: Radius.circular(18),
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _actionBtn(Icons.sms_outlined,          'SMS',      AppTheme.accent,   () => _sendTwilioSMS(m)),
-                _vDivider(isDark),
-                _actionBtn(Icons.chat_rounded,           'WhatsApp', AppTheme.success,  () => _showWhatsAppOptions(m)),
-                _vDivider(isDark),
-                _actionBtn(Icons.autorenew_rounded,      'Renew',    AppTheme.primary,  () => _openRenewScreen(m)),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            m.name,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(statusIcon, size: 10, color: statusColor),
+                              const SizedBox(width: 3),
+                              Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text('+91 ${m.phone}', style: TextStyle(color: txt2, fontSize: 12)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 20, color: activeCyan),
+                tooltip: 'Edit Member',
+                onPressed: () => _openEditMemberScreen(m),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded, size: 20, color: const Color(0xFFEF4444).withValues(alpha: 0.8)),
+                tooltip: 'Delete Member',
+                onPressed: () => _confirmDelete(m),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.calendar_today_rounded, size: 12, color: muted),
+              const SizedBox(width: 5),
+              Text('Exp: $expStr', style: TextStyle(color: txt2, fontSize: 12)),
+              if (daysLeft >= 0) ...[
+                const SizedBox(width: 8),
+                Text('• $daysLeft days left', style: TextStyle(color: _statusColor(m.status), fontSize: 11, fontWeight: FontWeight.w600)),
               ],
-            ),
+              const Spacer(),
+              Text('₹${m.amountPaid.toStringAsFixed(0)}', style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 13)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _actionChip(Icons.sms_outlined, 'SMS', const Color(0xFFFF6B2C), () => _sendTwilioSMS(m)),
+              const SizedBox(width: 8),
+              _actionChip(Icons.chat_rounded, 'WhatsApp', const Color(0xFF22C55E), () => _showWhatsAppOptions(m)),
+              const SizedBox(width: 8),
+              _actionChip(Icons.autorenew_rounded, 'Renew', activeCyan, () => _openRenewScreen(m)),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _actionBtn(IconData icon, String label, Color color, VoidCallback onTap) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(height: 3),
-              Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
-            ],
-          ),
+  Widget _actionChip(IconData icon, String label, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          ],
         ),
       ),
     );
   }
-
-  Widget _vDivider(bool isDark) => Container(
-    width: 1,
-    height: 28,
-    color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
-  );
 
   Widget _emptyState(bool isDark, Color txt, Color muted) => Center(
     child: Column(

@@ -10,6 +10,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
 import pinoHttp from 'pino-http';
+import nodemailer from 'nodemailer';
 
 const env = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
@@ -27,9 +28,40 @@ const env = z.object({
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_PHONE_NUMBER: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
 }).parse(process.env);
 const secret = new TextEncoder().encode(env.JWT_SECRET);
 const db = new Pool({ connectionString: env.DATABASE_URL, ssl: env.DATABASE_SSL ? { rejectUnauthorized: true } : false, max: 10 });
+
+// Nodemailer Transporter Setup
+let mailTransporter = null;
+if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && !env.SMTP_USER.includes('your_email')) {
+  mailTransporter = nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_PORT === 465,
+    auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+  });
+}
+
+// Auto-create email_otps table if not exists
+db.query(`
+  CREATE TABLE IF NOT EXISTS email_otps (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    email varchar(254) NOT NULL,
+    otp_code varchar(6) NOT NULL,
+    purpose varchar(20) NOT NULL DEFAULT 'signup',
+    expires_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_email_otps_email ON email_otps(email);
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS owner_name varchar(120);
+`).catch((err) => console.error('[DB] email_otps table check warning:', err.message));
+
 const google = env.GOOGLE_CLIENT_ID ? new OAuth2Client(env.GOOGLE_CLIENT_ID) : null;
 const allowedOrigins = new Set(env.ALLOWED_ORIGINS.split(',').map((x) => x.trim()).filter(Boolean));
 const app = express();
@@ -54,7 +86,18 @@ const parseDate = z.string().transform((s) => {
 });
 
 const userSchema = z.object({ email: emailSchema, password: passwordSchema });
-const gymSchema = z.object({ name: z.string().trim().min(2).max(120), address: z.string().trim().max(500).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(), currency: z.literal('INR').default('INR') });
+const sendOtpSchema = z.object({
+  email: emailSchema,
+  purpose: z.enum(['signup', 'login']).default('signup'),
+});
+const verifyOtpSchema = z.object({
+  email: emailSchema,
+  otp: z.string().trim().length(6, 'OTP must be 6 digits'),
+  password: passwordSchema.optional(),
+  purpose: z.enum(['signup', 'login']).default('signup'),
+});
+
+const gymSchema = z.object({ name: z.string().trim().min(2).max(120), owner_name: z.string().trim().max(120).nullable().optional(), address: z.string().trim().max(500).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(), currency: z.literal('INR').default('INR') });
 const memberSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), plan_id: z.string().uuid().nullable().optional(), subscription_start: parseDate, subscription_end: parseDate, amount_paid: z.coerce.number().min(0).max(10000000) });
 const leadSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), note: z.string().trim().max(2000).nullable().optional(), status: z.enum(['hot', 'warm', 'cold']), follow_up_date: parseDate });
 const dietSchema = z.object({ title: z.string().trim().min(2).max(160), type: z.enum(['veg', 'nonveg']), calories: z.string().trim().max(80), items: z.array(z.string().trim().min(1).max(200)).max(100) });
@@ -99,7 +142,7 @@ async function gymContext(req, res, next) {
     try {
       const created = await db.query(
         'INSERT INTO gyms (owner_id, name, currency) VALUES ($1, $2, $3) RETURNING *',
-        [req.user.id, 'FitnexGym', 'INR']
+        [req.user.id, 'Fitnex', 'INR']
       );
       rows = created.rows;
     } catch (_) {
@@ -113,6 +156,98 @@ async function gymContext(req, res, next) {
 function requireGym(req, res, next) { if (!req.gym) return res.status(409).json({ error: 'Complete gym setup first.' }); next(); }
 
 app.get('/health', asyncRoute(async (_req, res) => { await db.query('SELECT 1'); res.json({ status: 'ok' }); }));
+
+app.post('/v1/auth/send-otp', authLimit, asyncRoute(async (req, res) => {
+  const { email, purpose } = parse(sendOtpSchema, req.body);
+
+  if (purpose === 'login') {
+    const existing = await db.query('SELECT id FROM users WHERE email = $1 AND disabled_at IS NULL', [email]);
+    if (!existing.rows[0]) {
+      return res.status(404).json({ error: 'No account found with this email. Please sign up first.' });
+    }
+  }
+
+  await db.query('DELETE FROM email_otps WHERE email = $1 AND purpose = $2', [email, purpose]);
+
+  const otpCode = String(crypto.randomInt(100000, 999999));
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await db.query(
+    'INSERT INTO email_otps (email, otp_code, purpose, expires_at) VALUES ($1, $2, $3, $4)',
+    [email, otpCode, purpose, expiresAt]
+  );
+
+  console.log(`\n========================================`);
+  console.log(`[EMAIL OTP] Code for ${email} (${purpose}): ${otpCode}`);
+  console.log(`========================================\n`);
+
+  if (mailTransporter) {
+    const fromAddress = env.SMTP_FROM || `"Fitnex Auth" <${env.SMTP_USER}>`;
+    try {
+      await mailTransporter.sendMail({
+        from: fromAddress,
+        to: email,
+        subject: `Your Fitnex Verification Code: ${otpCode}`,
+        text: `Your verification code for Fitnex is ${otpCode}. It is valid for 10 minutes.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+            <h2 style="color: #6366f1; text-align: center;">Fitnex</h2>
+            <p>Hello,</p>
+            <p>Your verification code for <strong>${purpose === 'signup' ? 'Sign Up' : 'Sign In'}</strong> is:</p>
+            <div style="background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #1f2937; border-radius: 8px; margin: 20px 0;">
+              ${otpCode}
+            </div>
+            <p style="color: #6b7280; font-size: 13px;">This code will expire in 10 minutes. If you did not request this code, please ignore this email.</p>
+          </div>
+        `,
+      });
+    } catch (mailErr) {
+      console.error('[NODEMAILER] Error sending email:', mailErr.message);
+    }
+  }
+
+  res.json({ success: true, message: `Verification code sent to ${email}` });
+}));
+
+app.post('/v1/auth/verify-otp', authLimit, asyncRoute(async (req, res) => {
+  const { email, otp, password, purpose } = parse(verifyOtpSchema, req.body);
+
+  const { rows: otpRows } = await db.query(
+    'SELECT id, expires_at FROM email_otps WHERE email = $1 AND otp_code = $2 AND purpose = $3 AND expires_at > now()',
+    [email, otp, purpose]
+  );
+
+  if (!otpRows[0]) {
+    return res.status(400).json({ error: 'Invalid or expired OTP code. Please request a new code.' });
+  }
+
+  await db.query('DELETE FROM email_otps WHERE id = $1', [otpRows[0].id]);
+
+  let user = null;
+  const { rows: existingUsers } = await db.query('SELECT id, email FROM users WHERE email = $1 AND disabled_at IS NULL', [email]);
+
+  if (purpose === 'signup') {
+    if (existingUsers[0]) {
+      user = existingUsers[0];
+    } else {
+      const defaultPassword = password || `OtpAuth_${crypto.randomBytes(12).toString('hex')}`;
+      const passwordHash = await argon2.hash(defaultPassword, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 });
+      const created = await db.query('INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email', [email, passwordHash]);
+      user = created.rows[0];
+    }
+  } else {
+    if (!existingUsers[0]) {
+      return res.status(404).json({ error: 'User account not found.' });
+    }
+    user = existingUsers[0];
+  }
+
+  await db.query(`INSERT INTO gym_billing (owner_id, expires_at) VALUES ($1, now() + interval '14 days') ON CONFLICT (owner_id) DO NOTHING`, [user.id]).catch(() => {});
+  req.user = user;
+  await audit(req, `auth.otp_${purpose}`, 'user', user.id);
+  await issue(res, user);
+}));
+
 app.post('/v1/auth/register', authLimit, asyncRoute(async (req, res) => {
   const { email, password } = parse(userSchema, req.body);
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 });
@@ -164,9 +299,19 @@ app.post('/v1/auth/logout', auth, asyncRoute(async (req, res) => {
 
 app.get('/v1/gym', auth, gymContext, (req, res) => res.json(req.gym));
 app.post('/v1/gym', auth, gymContext, asyncRoute(async (req, res) => {
-  if (req.gym) return res.status(409).json({ error: 'A gym already exists for this account.' });
   const g = parse(gymSchema, req.body);
-  const { rows } = await db.query('INSERT INTO gyms (owner_id, name, address, phone, currency) VALUES ($1,$2,$3,$4,$5) RETURNING *', [req.user.id, g.name, g.address || null, g.phone || null, g.currency]);
+  if (req.gym) {
+    const { rows } = await db.query(
+      'UPDATE gyms SET name = $1, owner_name = $2, address = $3, phone = $4 WHERE id = $5 RETURNING *',
+      [g.name, g.owner_name || null, g.address || null, g.phone || null, req.gym.id]
+    );
+    await audit(req, 'gym.update', 'gym', rows[0].id);
+    return res.json(rows[0]);
+  }
+  const { rows } = await db.query(
+    'INSERT INTO gyms (owner_id, name, owner_name, address, phone, currency) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+    [req.user.id, g.name, g.owner_name || null, g.address || null, g.phone || null, g.currency]
+  );
   await audit(req, 'gym.create', 'gym', rows[0].id);
   res.status(201).json(rows[0]);
 }));

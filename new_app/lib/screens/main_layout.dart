@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
 import 'members_screen.dart';
 import 'leads_screen.dart';
@@ -30,15 +30,18 @@ class _MainLayoutState extends State<MainLayout> {
     _NavItem(icon: Icons.verified_rounded,         label: 'Subscription'),
   ];
 
-  final List<Widget> _screens = const [
-    DashboardScreen(),
-    MembersScreen(),
-    LeadsScreen(),
-    DietScreen(),
-    PlansScreen(),
-    ReportsScreen(),
-    SettingsScreen(),
-    SubscriptionScreen(),
+  late final List<Widget> _screens = [
+    DashboardScreen(
+      onNavigateTab: (idx) => setState(() => _currentIndex = idx),
+      onAddMember: () => setState(() => _currentIndex = 1),
+    ),
+    const MembersScreen(),
+    const LeadsScreen(),
+    const DietScreen(),
+    const PlansScreen(),
+    const ReportsScreen(),
+    const SettingsScreen(),
+    const SubscriptionScreen(),
   ];
 
   void _onMenuSelected(int index) {
@@ -49,54 +52,58 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor  = isDark ? AppTheme.darkSurface  : AppTheme.lightSurface;
-    final bg2Color = isDark ? AppTheme.darkBg        : AppTheme.lightBg;
-    final txtPrimary   = isDark ? AppTheme.darkTextPrimary   : AppTheme.lightTextPrimary;
-    final txtSecondary = isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary;
-    final borderColor  = isDark ? AppTheme.darkBorder        : AppTheme.lightBorder;
+    final navBgColor   = isDark ? const Color(0xFF08101C) : Colors.white;
+    final pageBgColor  = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final txtPrimary   = isDark ? Colors.white : const Color(0xFF0F172A);
+    final txtSecondary = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+    final borderColor  = isDark ? const Color(0xFF1B263B) : const Color(0xFFE2E8F0);
+    const activeCyan   = Color(0xFF00E5C0);
 
     return Scaffold(
-      backgroundColor: bg2Color,
+      backgroundColor: pageBgColor,
       appBar: AppBar(
-        backgroundColor: bgColor,
+        backgroundColor: navBgColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: Icon(Icons.notes_rounded, size: 26, color: txtPrimary),
+            icon: Icon(Icons.menu, size: 24, color: txtPrimary),
             tooltip: 'Menu',
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
+        titleSpacing: 0,
+        centerTitle: false,
         title: Text(
           _navItems[_currentIndex].label,
           style: TextStyle(
             color: txtPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
         ),
         actions: [
-          // Pro Plan badge
+          // Pro Plan Gold Badge
           GestureDetector(
             onTap: () => setState(() => _currentIndex = 7),
             child: Container(
-              margin: const EdgeInsets.only(right: 4),
+              margin: const EdgeInsets.only(right: 6),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                gradient: AppTheme.accentGradient,
+                color: isDark ? const Color(0xFF382904) : const Color(0xFFFEF08A),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFEAB308), width: 1),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
-                  SizedBox(width: 3),
+                  const Icon(Icons.workspace_premium_rounded, color: Color(0xFFCA8A04), size: 14),
+                  const SizedBox(width: 4),
                   Text(
                     'PRO',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                      color: isDark ? const Color(0xFFEAB308) : const Color(0xFF854D0E),
+                      fontWeight: FontWeight.w900,
                       fontSize: 11,
                       letterSpacing: 0.5,
                     ),
@@ -106,143 +113,187 @@ class _MainLayoutState extends State<MainLayout> {
             ),
           ),
           IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.darkSurfaceAlt : AppTheme.lightSurfaceAlt,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: borderColor),
-              ),
-              child: Icon(Icons.notifications_none_rounded, size: 20, color: txtPrimary),
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(Icons.notifications_none_rounded, size: 24, color: txtPrimary),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
             ),
             onPressed: () {},
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
         ],
       ),
 
-      // ── Premium Drawer ──
+      // ── Drawer (Theme Adaptive) ──
       drawer: Drawer(
         width: MediaQuery.of(context).size.width * 0.82,
-        backgroundColor: bgColor,
-        child: Column(
-          children: [
-            // ── Gradient Header ──
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 56, 20, 24),
-              decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2.5),
+        backgroundColor: navBgColor,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Header (Logo + Title + Subtitle + Close Button) ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Image.asset(
+                          'assets/images/logo.png',
+                          width: 36,
+                          height: 36,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RichText(
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Fit',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: txtPrimary,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const TextSpan(
+                                    text: 'nex',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: activeCyan,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Gym Management Pro',
+                              style: TextStyle(
+                                color: txtSecondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    child: CircleAvatar(
-                      radius: 32,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      child: const Icon(Icons.fitness_center_rounded, size: 30, color: Colors.white),
+                    IconButton(
+                      icon: Icon(Icons.close_rounded, color: txtSecondary, size: 22),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'FitnexGym',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Gym Management Pro',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () => _onMenuSelected(7),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.circle, color: AppTheme.success, size: 7),
-                          SizedBox(width: 6),
-                          Text(
-                            'Active Plan • View Details →',
-                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // ── Menu Items ──
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                children: [
-                  _drawerSection('MAIN'),
-                  _drawerItem(context, Icons.dashboard_rounded, 'Home', 0, isDark, txtPrimary, txtSecondary),
-                  _drawerItem(context, Icons.people_alt_rounded, 'Members', 1, isDark, txtPrimary, txtSecondary),
-                  _drawerItem(context, Icons.person_add_alt_1_rounded, 'Leads / Inquiries', 2, isDark, txtPrimary, txtSecondary),
-                  const SizedBox(height: 8),
-                  _drawerSection('MANAGEMENT'),
-                  _drawerItem(context, Icons.restaurant_menu_rounded, 'Diet Plans', 3, isDark, txtPrimary, txtSecondary),
-                  _drawerItem(context, Icons.card_membership_rounded, 'Membership Plans', 4, isDark, txtPrimary, txtSecondary),
-                  _drawerItem(context, Icons.bar_chart_rounded, 'Reports', 5, isDark, txtPrimary, txtSecondary),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Divider(height: 1, color: borderColor),
-                  ),
-                  const SizedBox(height: 8),
-                  _drawerSection('ACCOUNT'),
-                  _drawerItem(context, Icons.settings_rounded, 'Settings', 6, isDark, txtPrimary, txtSecondary),
-                  _drawerItem(context, Icons.verified_rounded, 'Subscription & Billing', 7, isDark, txtPrimary, txtSecondary),
-                ],
-              ),
-            ),
-
-            // ── Footer ──
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: borderColor)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(8),
+              // ── Menu Items ──
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  children: [
+                    _drawerItem(context, Icons.home_rounded, 'Home', 0, isDark, txtPrimary, txtSecondary),
+                    _drawerItem(context, Icons.groups_rounded, 'Members', 1, isDark, txtPrimary, txtSecondary),
+                    _drawerItem(context, Icons.person_add_rounded, 'Leads / Inquiries', 2, isDark, txtPrimary, txtSecondary),
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Divider(height: 1, color: borderColor),
                     ),
-                    child: const Icon(Icons.fitness_center_rounded, size: 14, color: Colors.white),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'FitnexGym SaaS v1.0',
-                    style: TextStyle(color: txtSecondary, fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    _drawerSection('MANAGEMENT', txtSecondary),
+                    _drawerItem(context, Icons.restaurant_rounded, 'Diet Plans', 3, isDark, txtPrimary, txtSecondary),
+                    _drawerItem(context, Icons.card_membership_rounded, 'Membership Plans', 4, isDark, txtPrimary, txtSecondary),
+                    _drawerItem(context, Icons.bar_chart_rounded, 'Reports', 5, isDark, txtPrimary, txtSecondary),
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Divider(height: 1, color: borderColor),
+                    ),
+                    const SizedBox(height: 6),
+                    _drawerSection('ACCOUNT', txtSecondary),
+                    _drawerItem(context, Icons.settings_rounded, 'Settings', 6, isDark, txtPrimary, txtSecondary),
+                    _drawerItem(context, Icons.credit_card_rounded, 'Subscription & Billing', 7, isDark, txtPrimary, txtSecondary),
+                    _drawerActionItem(
+                      icon: Icons.help_outline_rounded,
+                      title: 'Help & Support',
+                      txtPrimary: txtPrimary,
+                      txtSecondary: txtSecondary,
+                      onTap: _showHelpSupportDialog,
+                    ),
+                    _drawerActionItem(
+                      icon: Icons.logout_rounded,
+                      title: 'Logout',
+                      txtPrimary: txtPrimary,
+                      txtSecondary: txtSecondary,
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await AuthService.signOut();
+                        if (context.mounted) {
+                          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+
+              // ── Footer ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(height: 1, color: borderColor),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Fitnex v1.0',
+                      style: TextStyle(
+                        color: txtSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Gym Management Pro',
+                      style: TextStyle(
+                        color: txtSecondary.withValues(alpha: 0.7),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 220),
         switchInCurve: Curves.easeOut,
@@ -252,16 +303,85 @@ class _MainLayoutState extends State<MainLayout> {
           child: _screens[_currentIndex],
         ),
       ),
+
+      // ── Bottom Navigation Bar (Theme Adaptive) ──
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: navBgColor,
+          border: Border(top: BorderSide(color: borderColor, width: 1)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _bottomNavItem(index: 0, label: 'Home', icon: Icons.home_rounded, isDark: isDark, txtSecondary: txtSecondary),
+                _bottomNavItem(index: 1, label: 'Members', icon: Icons.groups_rounded, isDark: isDark, txtSecondary: txtSecondary),
+                _bottomNavItem(index: 2, label: 'Leads', icon: Icons.person_add_rounded, isDark: isDark, txtSecondary: txtSecondary),
+                _bottomNavItem(index: 5, label: 'Reports', icon: Icons.bar_chart_rounded, isDark: isDark, txtSecondary: txtSecondary),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _drawerSection(String label) {
+  void _showHelpSupportDialog() {
+    Navigator.pop(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131929),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.help_outline_rounded, color: Color(0xFF00E5C0)),
+            SizedBox(width: 10),
+            Text('Help & Support', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Need assistance with your Fitnex account?', style: TextStyle(color: Color(0xFF8896B3), fontSize: 14)),
+            SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(Icons.email_outlined, color: Color(0xFF00E5C0), size: 18),
+                SizedBox(width: 8),
+                Text('support@fitnex.com', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.phone_outlined, color: Color(0xFF00E5C0), size: 18),
+                SizedBox(width: 8),
+                Text('+91 98765 43210', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Color(0xFF00E5C0), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerSection(String label, Color txtSecondary) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 6),
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
       child: Text(
         label,
         style: TextStyle(
-          color: AppTheme.primary.withValues(alpha: 0.7),
+          color: txtSecondary,
           fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
@@ -280,65 +400,165 @@ class _MainLayoutState extends State<MainLayout> {
     Color txtSecondary,
   ) {
     final selected = _currentIndex == index;
+    const activeTeal = Color(0xFF00E5C0);
+    final activeBg = isDark ? const Color(0xFF0C2B30) : const Color(0xFFE6F9F5);
+    final iconBoxBg = selected
+        ? activeTeal.withValues(alpha: isDark ? 0.15 : 0.1)
+        : (isDark ? const Color(0xFF131D2D) : const Color(0xFFF1F5F9));
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => _onMenuSelected(index),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: selected
-                  ? AppTheme.primary.withValues(alpha: isDark ? 0.15 : 0.1)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              border: selected
-                  ? Border.all(color: AppTheme.primary.withValues(alpha: 0.3))
-                  : null,
+              color: selected ? activeBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: selected ? Border.all(color: activeTeal.withValues(alpha: 0.3)) : null,
             ),
             child: Row(
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                if (selected)
+                  Container(
+                    width: 4,
+                    height: 24,
+                    margin: const EdgeInsets.only(right: 10),
+                    decoration: BoxDecoration(
+                      color: activeTeal,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: selected
-                        ? AppTheme.primary.withValues(alpha: 0.15)
-                        : (isDark ? AppTheme.darkSurfaceAlt : AppTheme.lightSurfaceAlt),
+                    color: iconBoxBg,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     icon,
-                    size: 18,
-                    color: selected ? AppTheme.primary : txtSecondary,
+                    size: 19,
+                    color: selected ? activeTeal : txtSecondary,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      color: selected ? AppTheme.primary : txtPrimary,
+                      color: selected ? (isDark ? Colors.white : const Color(0xFF0F172A)) : txtPrimary,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                       fontSize: 14,
                     ),
                   ),
                 ),
                 if (selected)
-                  Container(
-                    width: 5,
-                    height: 5,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.primary,
-                      shape: BoxShape.circle,
-                    ),
+                  const Icon(
+                    Icons.circle,
+                    size: 6,
+                    color: activeTeal,
                   ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerActionItem({
+    required IconData icon,
+    required String title,
+    required Color txtPrimary,
+    required Color txtSecondary,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: txtSecondary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 19,
+                    color: txtSecondary,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: txtPrimary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bottomNavItem({
+    required int index,
+    required String label,
+    required IconData icon,
+    required bool isDark,
+    required Color txtSecondary,
+  }) {
+    final isSelected = _currentIndex == index;
+    const activeCyan = Color(0xFF00E5C0);
+
+    return InkWell(
+      onTap: () => setState(() => _currentIndex = index),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? activeCyan : txtSecondary,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? activeCyan : txtSecondary,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: 3,
+              width: isSelected ? 18 : 0,
+              decoration: BoxDecoration(
+                color: activeCyan,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
         ),
       ),
     );

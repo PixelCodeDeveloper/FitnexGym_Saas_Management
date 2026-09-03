@@ -51,7 +51,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _startPayment() async {
     setState(() => _isProcessingPayment = true);
     try {
-      final userEmail = await AuthService.userEmail ?? 'owner@fitnexgym.com';
+      final userEmail = await AuthService.userEmail ?? 'owner@fitnex.com';
       final orderData = await DbService.createRazorpayOrder();
 
       final orderId = orderData['orderId'] as String;
@@ -63,7 +63,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final options = {
         'key': keyId,
         'amount': amount,
-        'name': 'FitnexGym SaaS Pro Renewal',
+        'name': 'Fitnex Pro Renewal',
         'description': '30-Day Pro Subscription Extension',
         'order_id': orderId.startsWith('order_demo') ? null : orderId,
         'prefill': {
@@ -146,14 +146,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark   = Theme.of(context).brightness == Brightness.dark;
-    final bgColor  = isDark ? AppTheme.darkBg          : AppTheme.lightBg;
-    final cardBg   = isDark ? AppTheme.darkCard         : Colors.white;
-    final border   = isDark ? AppTheme.darkBorder       : AppTheme.lightBorder;
-    final txt      = isDark ? AppTheme.darkTextPrimary  : AppTheme.lightTextPrimary;
-    final txt2     = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
-    final muted    = isDark ? AppTheme.darkTextMuted    : AppTheme.lightTextMuted;
-    final barBg    = isDark ? AppTheme.darkSurface      : Colors.white;
-    final fillBg   = isDark ? AppTheme.darkSurfaceAlt   : AppTheme.lightSurfaceAlt;
+    final bgColor  = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final border   = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
+    final txt      = isDark ? Colors.white : const Color(0xFF0F172A);
+    final txt2     = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+    final muted    = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    const activeCyan = Color(0xFF00E5C0);
 
     final sub = _subInfo ?? SubscriptionInfo.fallbackActive(days: 30);
     final isFirstTime = sub.isFirstTime;
@@ -170,10 +168,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: barBg,
+        backgroundColor: bgColor,
         surfaceTintColor: Colors.transparent,
-        title: Text('Subscription & Billing', style: TextStyle(color: txt, fontWeight: FontWeight.w700, fontSize: 17)),
+        title: Text('Subscription & Billing', style: TextStyle(color: txt, fontWeight: FontWeight.bold, fontSize: 20)),
         iconTheme: IconThemeData(color: txt),
+        titleSpacing: 0,
         centerTitle: false,
         elevation: 0,
         actions: [
@@ -185,9 +184,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2))
           : RefreshIndicator(
-              color: AppTheme.primary,
+              color: activeCyan,
               onRefresh: _loadSubscription,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
@@ -195,21 +194,23 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Active Subscription Card ──
+                    // ── Active Subscription Header (Flat) ──
                     _buildActivePlanCard(isDark, txt2, muted),
 
                     const SizedBox(height: 28),
+                    Divider(height: 1, color: border),
+                    const SizedBox(height: 20),
 
                     // ── Features & Extensions Section ──
                     Text(
                       sectionTitle,
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
                         color: txt,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
 
                     _buildExtensionOptionCard(
                       title: isFirstTime ? 'Pro Monthly Plan' : 'Extend Pro Monthly',
@@ -221,14 +222,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       isRecommended: true,
                       buttonText: primaryButtonLabel,
                       isDark: isDark,
-                      cardBg: cardBg,
+                      cardBg: Colors.transparent,
                       border: border,
                       txt: txt,
                       txt2: txt2,
-                      fillBg: fillBg,
+                      fillBg: isDark ? const Color(0xFF131D2D) : const Color(0xFFF1F5F9),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
+                    Divider(height: 1, color: border),
+                    const SizedBox(height: 20),
 
                     _buildExtensionOptionCard(
                       title: 'Annual Pro Saver',
@@ -238,43 +241,43 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       isRecommended: false,
                       buttonText: 'Select Annual Package',
                       isDark: isDark,
-                      cardBg: cardBg,
+                      cardBg: Colors.transparent,
                       border: border,
                       txt: txt,
                       txt2: txt2,
-                      fillBg: fillBg,
+                      fillBg: isDark ? const Color(0xFF131D2D) : const Color(0xFFF1F5F9),
                     ),
 
                     const SizedBox(height: 28),
+                    Divider(height: 1, color: border),
+                    const SizedBox(height: 20),
 
-                    // ── Billing History & Support Info ──
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: border),
-                      ),
+                    // ── Billing Support Info ──
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Column(
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.verified_user_outlined, color: AppTheme.primary, size: 20),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Secure Payments by Razorpay',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  color: txt,
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: activeCyan.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.shield_outlined, color: activeCyan, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Secure SSL Payments', style: TextStyle(color: txt, fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Text('Processed via Razorpay gateway with instant renewal', style: TextStyle(color: txt2, fontSize: 11)),
+                                  ],
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'All subscription payments are encrypted with 256-bit SSL encryption. Your plan extensions stack automatically on top of existing remaining days.',
-                            style: TextStyle(color: txt2, fontSize: 13, height: 1.5),
                           ),
                         ],
                       ),

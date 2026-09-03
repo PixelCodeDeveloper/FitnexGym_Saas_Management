@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/payment.dart';
 import '../services/db_service.dart';
-import '../theme/app_theme.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -43,10 +42,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark   = Theme.of(context).brightness == Brightness.dark;
+    final bgColor  = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final border   = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
+    final txt      = isDark ? Colors.white : const Color(0xFF0F172A);
+    final txt2     = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+    final muted    = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    const activeCyan = Color(0xFF00E5C0);
+
     return Scaffold(
+      backgroundColor: bgColor,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2))
           : RefreshIndicator(
+              color: activeCyan,
               onRefresh: _loadReportData,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -54,55 +63,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Revenue Summary Card ──
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                    // ── Revenue Summary Header (Flat layout) ──
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Monthly Revenue',
-                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                            style: TextStyle(color: txt2, fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '₹${_monthlyRevenue.toStringAsFixed(0)}',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: activeCyan,
                               fontSize: 32,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.bold,
                               letterSpacing: -1,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.trending_up, color: Colors.white, size: 14),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Live VPS Data',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         ],
@@ -110,37 +88,42 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
 
                     const SizedBox(height: 24),
+                    Divider(height: 1, color: border),
+                    const SizedBox(height: 20),
 
-                    const Text(
+                    Text(
                       'Payment History',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: txt),
                     ),
                     const SizedBox(height: 12),
 
                     if (_payments.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.divider),
-                        ),
-                        child: const Column(
-                          children: [
-                            Icon(Icons.receipt_long_outlined, size: 48, color: AppTheme.textMuted),
-                            SizedBox(height: 12),
-                            Text(
-                              'No payment records found',
-                              style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Payments collected from members will appear here.',
-                              style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: txt2.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(Icons.receipt_long_outlined, size: 28, color: muted),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No payment records found',
+                                style: TextStyle(color: txt, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Payments collected from members will appear here.',
+                                style: TextStyle(color: muted, fontSize: 12),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
                         ),
                       )
                     else
@@ -148,7 +131,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _payments.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        separatorBuilder: (_, idx) => Divider(height: 1, color: border),
                         itemBuilder: (context, i) {
                           final p = _payments[i];
                           return _paymentTile(
@@ -156,6 +139,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             '₹${p.amount.toStringAsFixed(0)}',
                             p.planName ?? 'Subscription Payment',
                             DateFormat('dd MMM yyyy').format(p.paidAt),
+                            txt, txt2, muted,
                           );
                         },
                       ),
@@ -166,25 +150,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _paymentTile(String name, String amount, String plan, String time) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.divider),
-      ),
+  Widget _paymentTile(String name, String amount, String plan, String time, Color txt, Color txt2, Color muted) {
+    const activeCyan = Color(0xFF00E5C0);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: AppTheme.successBg,
+            decoration: BoxDecoration(
+              color: const Color(0xFF22C55E).withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.arrow_downward_rounded,
-              color: AppTheme.success,
+              color: Color(0xFF22C55E),
               size: 16,
             ),
           ),
@@ -195,15 +175,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
                     fontSize: 14,
+                    color: txt,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   plan,
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
+                  style: TextStyle(
+                    color: txt2,
                     fontSize: 12,
                   ),
                 ),
@@ -216,14 +198,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
               Text(
                 amount,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.success,
+                  fontWeight: FontWeight.bold,
+                  color: activeCyan,
                   fontSize: 15,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
                 time,
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                style: TextStyle(color: muted, fontSize: 11),
               ),
             ],
           ),

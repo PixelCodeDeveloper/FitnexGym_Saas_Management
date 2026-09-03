@@ -117,127 +117,115 @@ class _LeadsScreenState extends State<LeadsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark  = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppTheme.darkBg          : AppTheme.lightBg;
-    final cardBg  = isDark ? AppTheme.darkCard         : AppTheme.lightSurface;
-    final border  = isDark ? AppTheme.darkBorder       : AppTheme.lightBorder;
-    final footBg  = isDark ? AppTheme.darkSurfaceAlt   : AppTheme.lightSurfaceAlt;
-    final txt     = isDark ? AppTheme.darkTextPrimary  : AppTheme.lightTextPrimary;
-    final txt2    = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
-    final muted   = isDark ? AppTheme.darkTextMuted    : AppTheme.lightTextMuted;
+    final bgColor = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final border  = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
+    final txt     = isDark ? Colors.white : const Color(0xFF0F172A);
+    final txt2    = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+    final muted   = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    const activeCyan = Color(0xFF00E5C0);
 
     return Scaffold(
       backgroundColor: bgColor,
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))
+          ? const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2))
           : _leads.isEmpty
               ? _emptyState(isDark, txt, muted)
               : RefreshIndicator(
-                  color: AppTheme.primary,
+                  color: activeCyan,
                   onRefresh: _loadLeads,
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     itemCount: _leads.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => _leadCard(_leads[i], isDark, cardBg, border, footBg, txt, txt2, muted),
+                    separatorBuilder: (_, idx) => Divider(height: 1, color: border),
+                    itemBuilder: (_, i) => _leadTile(_leads[i], isDark, border, txt, txt2, muted),
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddLeadScreen,
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: activeCyan,
+        foregroundColor: Colors.black,
         elevation: 0,
         icon: const Icon(Icons.person_add_alt_1_rounded),
-        label: const Text('New Lead', style: TextStyle(fontWeight: FontWeight.w700)),
+        label: const Text('New Lead', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _leadCard(
+  Widget _leadTile(
     Lead lead, bool isDark,
-    Color cardBg, Color border, Color footBg,
+    Color border,
     Color txt, Color txt2, Color muted,
   ) {
     final sc       = _statusColor(lead.status);
     final sl       = _statusLabel(lead.status);
     final initials = lead.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
     final followUp = DateFormat('dd MMM yyyy').format(lead.followUpDate);
+    const activeCyan = Color(0xFF00E5C0);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: border),
-        boxShadow: isDark ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))] : null,
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Top row ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 8, 0),
-            child: Row(
-              children: [
-                // Avatar
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: sc.withValues(alpha: isDark ? 0.2 : 0.1),
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(color: sc.withValues(alpha: 0.3)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initials.isEmpty ? 'L' : initials,
-                      style: TextStyle(color: sc, fontWeight: FontWeight.w800, fontSize: 16),
-                    ),
+          Row(
+            children: [
+              // Avatar
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: sc.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    initials.isEmpty ? 'L' : initials,
+                    style: TextStyle(color: sc, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(lead.name, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: txt)),
-                      const SizedBox(height: 3),
-                      Text('+91 ${lead.phone}', style: TextStyle(color: txt2, fontSize: 12)),
-                    ],
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(lead.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt)),
+                    const SizedBox(height: 3),
+                    Text('+91 ${lead.phone}', style: TextStyle(color: txt2, fontSize: 12)),
+                  ],
                 ),
-                // Status badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: sc.withValues(alpha: isDark ? 0.15 : 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: sc.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(sl, style: TextStyle(color: sc, fontSize: 11, fontWeight: FontWeight.w700)),
+              ),
+              // Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: sc.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                IconButton(
-                  icon: Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.error.withValues(alpha: 0.7)),
-                  onPressed: () => _confirmDelete(lead),
-                ),
-              ],
-            ),
+                child: Text(sl, style: TextStyle(color: sc, fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded, size: 20, color: const Color(0xFFEF4444).withValues(alpha: 0.8)),
+                onPressed: () => _confirmDelete(lead),
+              ),
+            ],
           ),
 
           // ── Note ──
           if (lead.note != null && lead.note!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
               child: Container(
                 padding: const EdgeInsets.all(10),
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: isDark ? 0.08 : 0.05),
+                  color: activeCyan.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.sticky_note_2_rounded, size: 14, color: AppTheme.primary),
+                    const Icon(Icons.sticky_note_2_rounded, size: 14, color: activeCyan),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(lead.note!, style: TextStyle(color: txt2, fontSize: 12, fontStyle: FontStyle.italic)),
@@ -247,72 +235,64 @@ class _LeadsScreenState extends State<LeadsScreen> {
               ),
             ),
 
-          // ── Follow-up ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          // ── Follow-up & Actions ──
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: activeCyan.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.event_rounded, size: 13, color: activeCyan),
+                    const SizedBox(width: 4),
+                    Text('Follow-up: $followUp', style: const TextStyle(color: activeCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: () => _makeCall(lead),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.1),
+                    color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: const Row(
                     children: [
-                      Icon(Icons.event_rounded, size: 13, color: AppTheme.primary),
-                      const SizedBox(width: 5),
-                      Text('Follow-up: $followUp', style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                      Icon(Icons.call_rounded, size: 13, color: Color(0xFF3B82F6)),
+                      SizedBox(width: 4),
+                      Text('Call', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 11, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // ── Actions ──
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: footBg,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(18),
-                bottomRight: Radius.circular(18),
               ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _makeCall(lead),
-                    icon: const Icon(Icons.call_rounded, size: 16),
-                    label: const Text('Call', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primary,
-                      side: BorderSide(color: AppTheme.primary.withValues(alpha: 0.5)),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => _convertToMember(lead),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: activeCyan.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.person_add_alt_1_rounded, size: 13, color: activeCyan),
+                      SizedBox(width: 4),
+                      Text('Convert', style: TextStyle(color: activeCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _convertToMember(lead),
-                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
-                    label: const Text('Convert', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -326,13 +306,13 @@ class _LeadsScreenState extends State<LeadsScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.1),
+            color: const Color(0xFF00E5C0).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Icon(Icons.contacts_rounded, size: 40, color: AppTheme.primary),
+          child: const Icon(Icons.contacts_rounded, size: 40, color: Color(0xFF00E5C0)),
         ),
         const SizedBox(height: 16),
-        Text('No leads yet', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: txt)),
+        Text('No leads yet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: txt)),
         const SizedBox(height: 6),
         Text('Add leads to start tracking potential members.', style: TextStyle(color: muted, fontSize: 13)),
       ],

@@ -13,6 +13,7 @@ import 'auth_service.dart';
 /// callers cannot select another tenant by changing a gym_id in the app.
 class DbService {
   static const _gymNameKey = 'saved_gym_name';
+  static const _gymOwnerNameKey = 'saved_gym_owner_name';
   static const _gymAddressKey = 'saved_gym_address';
   static const _gymPhoneKey = 'saved_gym_phone';
   static const _subExpiryPrefix = 'saved_sub_expiry_';
@@ -28,6 +29,7 @@ class DbService {
     final name = await _storage.read(key: _gymNameKey);
     if (name == null || name.isEmpty) return null;
 
+    final ownerName = await _storage.read(key: _gymOwnerNameKey);
     final address = await _storage.read(key: _gymAddressKey);
     final phone = await _storage.read(key: _gymPhoneKey);
     final gymId = await AuthService.getGymId() ?? 'gym_local';
@@ -37,6 +39,7 @@ class DbService {
       id: gymId,
       ownerId: ownerId,
       name: name,
+      ownerName: ownerName,
       address: address,
       phone: phone,
       currency: 'INR',
@@ -46,12 +49,14 @@ class DbService {
 
   static Future<Gym> createGym(Gym gym) async {
     await _storage.write(key: _gymNameKey, value: gym.name);
+    if (gym.ownerName != null) await _storage.write(key: _gymOwnerNameKey, value: gym.ownerName!);
     if (gym.address != null) await _storage.write(key: _gymAddressKey, value: gym.address!);
     if (gym.phone != null) await _storage.write(key: _gymPhoneKey, value: gym.phone!);
 
     try {
       final res = await ApiClient.post('/v1/gym', {
         'name': gym.name,
+        'owner_name': gym.ownerName,
         'address': gym.address,
         'phone': gym.phone,
         'currency': gym.currency,

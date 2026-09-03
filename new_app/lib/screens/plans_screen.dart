@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/subscription_plan.dart';
 import '../services/db_service.dart';
-import '../theme/app_theme.dart';
 import 'forms/add_plan_screen.dart';
 
 class PlansScreen extends StatefulWidget {
@@ -43,154 +42,130 @@ class _PlansScreenState extends State<PlansScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark   = Theme.of(context).brightness == Brightness.dark;
-    final bgColor  = isDark ? AppTheme.darkBg         : AppTheme.lightBg;
-    final cardBg   = isDark ? AppTheme.darkCard        : AppTheme.lightSurface;
-    final border   = isDark ? AppTheme.darkBorder      : AppTheme.lightBorder;
-    final txt      = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
-    final txt2     = isDark ? AppTheme.darkTextSecondary: AppTheme.lightTextSecondary;
-    final muted    = isDark ? AppTheme.darkTextMuted   : AppTheme.lightTextMuted;
+    final bgColor  = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final border   = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
+    final txt      = isDark ? Colors.white : const Color(0xFF0F172A);
+    final txt2     = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+    final muted    = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    const activeCyan = Color(0xFF00E5C0);
 
     return Scaffold(
       backgroundColor: bgColor,
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))
+          ? const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2))
           : _plans.isEmpty
-              ? _emptyState(isDark, cardBg, border, txt, muted)
+              ? _emptyState(isDark, border, txt, muted)
               : RefreshIndicator(
-                  color: AppTheme.primary,
+                  color: activeCyan,
                   onRefresh: _loadPlans,
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     itemCount: _plans.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
-                    itemBuilder: (context, i) => _planCard(_plans[i], isDark, cardBg, border, txt, txt2, muted),
+                    separatorBuilder: (_, idx) => Divider(height: 1, color: border),
+                    itemBuilder: (context, i) => _planTile(_plans[i], isDark, border, txt, txt2, muted),
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddPlanScreen,
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: activeCyan,
+        foregroundColor: Colors.black,
         elevation: 0,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('New Plan', style: TextStyle(fontWeight: FontWeight.w700)),
+        label: const Text('New Plan', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _planCard(
+  Widget _planTile(
     SubscriptionPlan plan, bool isDark,
-    Color cardBg, Color border, Color txt, Color txt2, Color muted,
+    Color border, Color txt, Color txt2, Color muted,
   ) {
-    // Mark 3-month plans as "popular"
     final isPopular = plan.durationDays >= 85 && plan.durationDays <= 95;
-    final accentColor = isPopular ? AppTheme.primary : txt2;
+    const activeCyan = Color(0xFF00E5C0);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isPopular ? AppTheme.primary.withValues(alpha: 0.5) : border,
-          width: isPopular ? 1.5 : 1,
-        ),
-        boxShadow: isPopular
-            ? [BoxShadow(color: AppTheme.primary.withValues(alpha: isDark ? 0.2 : 0.1), blurRadius: 16, offset: const Offset(0, 4))]
-            : (isDark ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))] : null),
-      ),
-      child: Stack(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: activeCyan.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.card_membership_rounded,
+              color: activeCyan,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icon container
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    gradient: isPopular ? AppTheme.primaryGradient : null,
-                    color: isPopular ? null : (isDark ? AppTheme.darkSurfaceAlt : AppTheme.lightSurfaceAlt),
-                    borderRadius: BorderRadius.circular(14),
-                    border: isPopular ? null : Border.all(color: border),
-                  ),
-                  child: Icon(
-                    Icons.card_membership_rounded,
-                    color: isPopular ? Colors.white : txt2,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(plan.name, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: txt)),
-                      const SizedBox(height: 5),
-                      Text(
-                        plan.description ?? '${plan.durationDays} days membership plan',
-                        style: TextStyle(color: txt2, fontSize: 13),
-                      ),
-                      const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(plan.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: txt)),
+                    if (isPopular) ...[
+                      const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
+                          color: activeCyan,
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(
-                          '${plan.durationDays} Days',
-                          style: TextStyle(color: accentColor, fontSize: 12, fontWeight: FontWeight.w600),
+                        child: const Text(
+                          'POPULAR',
+                          style: TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
-                  ),
-                ),
-                // Price
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '₹${plan.price.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        color: isPopular ? AppTheme.primary : txt,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 22,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text('per plan', style: TextStyle(color: muted, fontSize: 11)),
                   ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  plan.description ?? '${plan.durationDays} days membership plan',
+                  style: TextStyle(color: txt2, fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: activeCyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${plan.durationDays} Days',
+                    style: const TextStyle(color: activeCyan, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
           ),
-          // Popular badge
-          if (isPopular)
-            Positioned(
-              top: 0,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: const BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  '⭐ POPULAR',
-                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '₹${plan.price.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  color: activeCyan,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  letterSpacing: -0.5,
                 ),
               ),
-            ),
+              const SizedBox(height: 2),
+              Text('per plan', style: TextStyle(color: muted, fontSize: 11)),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _emptyState(bool isDark, Color cardBg, Color border, Color txt, Color muted) {
+  Widget _emptyState(bool isDark, Color border, Color txt, Color muted) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -198,13 +173,13 @@ class _PlansScreenState extends State<PlansScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
+              color: const Color(0xFF00E5C0).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.card_membership_rounded, size: 36, color: Colors.white),
+            child: const Icon(Icons.card_membership_rounded, size: 36, color: Color(0xFF00E5C0)),
           ),
           const SizedBox(height: 16),
-          Text('No plans created yet', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: txt)),
+          Text('No plans created yet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: txt)),
           const SizedBox(height: 6),
           Text('Tap + to create your first membership plan.', style: TextStyle(color: muted, fontSize: 13)),
         ],
