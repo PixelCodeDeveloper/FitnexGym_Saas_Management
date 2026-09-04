@@ -56,7 +56,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
       final orderId = orderData['orderId'] as String;
       final keyId   = orderData['keyId'] as String? ?? 'rzp_test_mock_key_id';
-      final amount  = orderData['amount'] as int? ?? 99900;
+      final amount  = orderData['amount'] as int? ?? 100;
 
       _pendingOrderId = orderId;
 
@@ -214,7 +214,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
                     _buildExtensionOptionCard(
                       title: isFirstTime ? 'Pro Monthly Plan' : 'Extend Pro Monthly',
-                      price: '₹999',
+                      price: '₹1',
                       duration: '30 Days Access',
                       description: isFirstTime
                           ? 'Get 30 days of full access to member management, WhatsApp reminders, and revenue reporting.'

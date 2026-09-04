@@ -430,7 +430,7 @@ app.get('/v1/billing/status', auth, asyncRoute(async (req, res) => {
   });
 }));
 app.post('/v1/billing/create-order', auth, asyncRoute(async (req, res) => {
-  const amount = 999;
+  const amount = 1;
   const receipt = `rcpt_${req.user.id.slice(0, 8)}_${Date.now()}`;
   const keyId = env.RAZORPAY_KEY_ID;
   const keySecret = env.RAZORPAY_KEY_SECRET;

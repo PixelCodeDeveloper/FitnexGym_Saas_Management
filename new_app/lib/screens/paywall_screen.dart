@@ -57,7 +57,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
       final orderId = orderData['orderId'] as String;
       final keyId = orderData['keyId'] as String? ?? 'rzp_test_mock_key_id';
-      final amount = orderData['amount'] as int? ?? 99900;
+      final amount = orderData['amount'] as int? ?? 100;
 
       _pendingOrderId = orderId;
 
@@ -229,7 +229,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '₹999',
+                    '₹1',
                     style: const TextStyle(
                       fontSize: 42,
                       fontWeight: FontWeight.bold,

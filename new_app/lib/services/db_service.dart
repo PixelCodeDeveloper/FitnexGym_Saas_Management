@@ -265,7 +265,7 @@ class DbService {
     } catch (_) {
       return {
         'orderId': 'order_demo_${DateTime.now().millisecondsSinceEpoch}',
-        'amount': 99900,
+        'amount': 100,
         'currency': 'INR',
         'keyId': 'rzp_test_mock_key_id',
       };
