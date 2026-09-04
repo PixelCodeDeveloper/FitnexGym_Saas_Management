@@ -100,7 +100,24 @@ const verifyOtpSchema = z.object({
 });
 
 const gymSchema = z.object({ name: z.string().trim().min(2).max(120), owner_name: z.string().trim().max(120).nullable().optional(), address: z.string().trim().max(500).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(), currency: z.literal('INR').default('INR') });
-const memberSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), email: z.string().trim().email().max(254).nullable().optional(), plan_id: z.string().uuid().nullable().optional(), subscription_start: parseDate, subscription_end: parseDate, amount_paid: z.coerce.number().min(0).max(10000000) });
+const memberSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  phone: z.string().trim().min(6).max(30),
+  email: z.preprocess((val) => (val === '' || val === undefined ? null : val), z.string().trim().email().max(254).nullable().optional()),
+  plan_id: z.preprocess((val) => (val === '' || val === undefined ? null : val), z.string().uuid().nullable().optional()),
+  subscription_start: parseDate,
+  subscription_end: parseDate,
+  amount_paid: z.coerce.number().min(0).max(10000000)
+});
+const updateMemberSchema = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  phone: z.string().trim().min(6).max(30).optional(),
+  email: z.preprocess((val) => (val === '' || val === undefined ? null : val), z.string().trim().email().max(254).nullable().optional()),
+  plan_id: z.preprocess((val) => (val === '' || val === undefined ? null : val), z.string().uuid().nullable().optional()),
+  subscription_start: parseDate.optional(),
+  subscription_end: parseDate.optional(),
+  amount_paid: z.coerce.number().min(0).max(10000000).optional(),
+});
 const leadSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), note: z.string().trim().max(2000).nullable().optional(), status: z.enum(['hot', 'warm', 'cold']), follow_up_date: parseDate });
 const dietSchema = z.object({ title: z.string().trim().min(2).max(160), type: z.enum(['veg', 'nonveg']), calories: z.string().trim().max(80), items: z.array(z.string().trim().min(1).max(200)).max(100) });
 const planSchema = z.object({ name: z.string().trim().min(2).max(120), duration_days: z.coerce.number().int().min(1).max(3650), price: z.coerce.number().min(0).max(10000000), description: z.string().trim().max(1000).nullable().optional() });
@@ -540,6 +557,23 @@ app.post('/v1/members', auth, gymContext, requireGym, asyncRoute(async (req, res
   }
 
   res.status(201).json(rows[0]);
+}));
+app.patch('/v1/members/:id', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const memberId = parse(uuid, req.params.id);
+  const body = parse(updateMemberSchema, req.body);
+  const keys = Object.keys(body).filter((k) => body[k] !== undefined);
+  if (keys.length === 0) return res.status(400).json({ error: 'No fields to update.' });
+
+  const setClause = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
+  const values = keys.map((k) => body[k]);
+
+  const { rows } = await db.query(
+    `UPDATE members SET ${setClause}, updated_at = now() WHERE id = $1 AND gym_id = $2 RETURNING *`,
+    [memberId, req.gym.id, ...values]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Member not found.' });
+  await audit(req, 'members.update', 'members', memberId);
+  res.json(rows[0]);
 }));
 app.delete('/v1/members/:id', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
   const { rowCount } = await db.query('DELETE FROM members WHERE id = $1 AND gym_id = $2', [parse(uuid, req.params.id), req.gym.id]);

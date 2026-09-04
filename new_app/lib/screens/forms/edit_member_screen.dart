@@ -18,6 +18,7 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
   final _formKey          = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
+  late TextEditingController _emailController;
   late TextEditingController _amountController;
   late DateTime _subscriptionEnd;
   bool _isSaving = false;
@@ -27,6 +28,7 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
     super.initState();
     _nameController   = TextEditingController(text: widget.member.name);
     _phoneController  = TextEditingController(text: widget.member.phone);
+    _emailController  = TextEditingController(text: widget.member.email ?? '');
     _amountController = TextEditingController(text: widget.member.amountPaid.toStringAsFixed(0));
     _subscriptionEnd  = widget.member.subscriptionEnd;
   }
@@ -35,6 +37,7 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _amountController.dispose();
     super.dispose();
   }
@@ -63,8 +66,9 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
-    final updatedName = _nameController.text.trim();
-    final updatedPhone = InputValidator.sanitizePhone(_phoneController.text);
+    final updatedName   = _nameController.text.trim();
+    final updatedPhone  = InputValidator.sanitizePhone(_phoneController.text);
+    final updatedEmail  = _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null;
     final updatedAmount = double.tryParse(_amountController.text.trim()) ?? widget.member.amountPaid;
 
     final updatedMember = Member(
@@ -72,6 +76,7 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
       gymId: widget.member.gymId,
       name: updatedName,
       phone: updatedPhone,
+      email: updatedEmail,
       planId: widget.member.planId,
       subscriptionStart: widget.member.subscriptionStart,
       subscriptionEnd: _subscriptionEnd,
@@ -83,6 +88,7 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
       await DbService.updateMember(widget.member.id, {
         'name': updatedName,
         'phone': updatedPhone,
+        'email': updatedEmail,
         'subscription_end': _subscriptionEnd.toIso8601String(),
         'amount_paid': updatedAmount,
       });
@@ -143,7 +149,7 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
                         iconBg: AppTheme.primary.withValues(alpha: 0.12),
                         iconColor: AppTheme.primary,
                         title: 'Edit Personal Details',
-                        subtitle: 'Update member name and contact number',
+                        subtitle: 'Update member name, phone number, and email address',
                         txt: txt, txt2: txt2,
                       ),
                       const SizedBox(height: 16),
@@ -179,6 +185,29 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
                         decoration: _fieldDec(
                           hint: 'Enter 10-digit mobile number',
                           icon: Icons.phone_android_rounded,
+                          iconColor: AppTheme.primary,
+                          fillColor: inputFill,
+                          border: border,
+                          hintColor: muted,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      _label('Email Address (For Receipts & Reminders)', muted),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (val) {
+                          if (val != null && val.trim().isNotEmpty) {
+                            return InputValidator.validateEmail(val.trim());
+                          }
+                          return null;
+                        },
+                        style: TextStyle(color: txt, fontWeight: FontWeight.w500),
+                        decoration: _fieldDec(
+                          hint: 'e.g. member@email.com (Optional)',
+                          icon: Icons.email_outlined,
                           iconColor: AppTheme.primary,
                           fillColor: inputFill,
                           border: border,
