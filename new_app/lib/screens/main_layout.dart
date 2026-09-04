@@ -18,13 +18,14 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<_NavItem> _navItems = const [
     _NavItem(icon: Icons.dashboard_rounded,      label: 'Home'),
     _NavItem(icon: Icons.people_alt_rounded,      label: 'Members'),
     _NavItem(icon: Icons.person_add_alt_1_rounded, label: 'Leads'),
     _NavItem(icon: Icons.restaurant_menu_rounded,  label: 'Diet Plans'),
-    _NavItem(icon: Icons.card_membership_rounded,  label: 'Plans'),
+    _NavItem(icon: Icons.card_membership_rounded,  label: 'Membership Plans'),
     _NavItem(icon: Icons.bar_chart_rounded,        label: 'Reports'),
     _NavItem(icon: Icons.settings_rounded,         label: 'Settings'),
     _NavItem(icon: Icons.verified_rounded,         label: 'Subscription'),
@@ -46,7 +47,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   void _onMenuSelected(int index) {
     setState(() => _currentIndex = index);
-    Navigator.pop(context);
+    _scaffoldKey.currentState?.closeDrawer();
   }
 
   @override
@@ -60,17 +61,16 @@ class _MainLayoutState extends State<MainLayout> {
     const activeCyan   = Color(0xFF00E5C0);
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: pageBgColor,
       appBar: AppBar(
         backgroundColor: navBgColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu, size: 24, color: txtPrimary),
-            tooltip: 'Menu',
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          ),
+        leading: IconButton(
+          icon: Icon(Icons.menu, size: 24, color: txtPrimary),
+          tooltip: 'Menu',
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         titleSpacing: 0,
         centerTitle: false,
@@ -203,7 +203,7 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                     IconButton(
                       icon: Icon(Icons.close_rounded, color: txtSecondary, size: 22),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => _scaffoldKey.currentState?.closeDrawer(),
                     ),
                   ],
                 ),
@@ -249,7 +249,7 @@ class _MainLayoutState extends State<MainLayout> {
                       txtPrimary: txtPrimary,
                       txtSecondary: txtSecondary,
                       onTap: () async {
-                        Navigator.pop(context);
+                        _scaffoldKey.currentState?.closeDrawer();
                         await AuthService.signOut();
                         if (context.mounted) {
                           Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
@@ -294,14 +294,9 @@ class _MainLayoutState extends State<MainLayout> {
         ),
       ),
 
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 220),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        child: KeyedSubtree(
-          key: ValueKey<int>(_currentIndex),
-          child: _screens[_currentIndex],
-        ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
 
       // ── Bottom Navigation Bar (Theme Adaptive) ──
@@ -312,14 +307,15 @@ class _MainLayoutState extends State<MainLayout> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _bottomNavItem(index: 0, label: 'Home', icon: Icons.home_rounded, isDark: isDark, txtSecondary: txtSecondary),
                 _bottomNavItem(index: 1, label: 'Members', icon: Icons.groups_rounded, isDark: isDark, txtSecondary: txtSecondary),
+                _bottomNavItem(index: 4, label: 'Plans', icon: Icons.card_membership_rounded, isDark: isDark, txtSecondary: txtSecondary),
+                _bottomNavItem(index: 3, label: 'Diet', icon: Icons.restaurant_menu_rounded, isDark: isDark, txtSecondary: txtSecondary),
                 _bottomNavItem(index: 2, label: 'Leads', icon: Icons.person_add_rounded, isDark: isDark, txtSecondary: txtSecondary),
-                _bottomNavItem(index: 5, label: 'Reports', icon: Icons.bar_chart_rounded, isDark: isDark, txtSecondary: txtSecondary),
               ],
             ),
           ),
