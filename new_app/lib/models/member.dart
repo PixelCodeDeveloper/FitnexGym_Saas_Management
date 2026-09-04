@@ -5,6 +5,7 @@ class Member {
   final String gymId;
   final String name;
   final String phone;
+  final String? email;
   final String? planId;
   final DateTime subscriptionStart;
   final DateTime subscriptionEnd;
@@ -16,6 +17,7 @@ class Member {
     required this.gymId,
     required this.name,
     required this.phone,
+    this.email,
     this.planId,
     required this.subscriptionStart,
     required this.subscriptionEnd,
@@ -36,6 +38,7 @@ class Member {
     gymId: json['gym_id'],
     name: json['name'],
     phone: json['phone'],
+    email: json['email'],
     planId: json['plan_id'],
     subscriptionStart: DateTime.parse(json['subscription_start']),
     subscriptionEnd: DateTime.parse(json['subscription_end']),
@@ -46,6 +49,7 @@ class Member {
   Map<String, dynamic> toJson() => {
     'name': name,
     'phone': phone,
+    'email': (email != null && email!.trim().isNotEmpty) ? email!.trim() : null,
     'plan_id': (planId != null && planId!.isNotEmpty && planId!.contains('-')) ? planId : null,
     'subscription_start': subscriptionStart.toUtc().toIso8601String(),
     'subscription_end': subscriptionEnd.toUtc().toIso8601String(),

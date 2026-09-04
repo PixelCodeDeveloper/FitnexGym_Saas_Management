@@ -321,6 +321,57 @@ class DbService {
       return true;
     }
   }
+
+  static Future<bool> sendMemberReceiptEmail({
+    String? memberId,
+    required String memberEmail,
+    required double amount,
+    String? planName,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final res = await ApiClient.post('/v1/members/send-receipt', {
+        'member_id': memberId,
+        'member_email': memberEmail,
+        'amount': amount,
+        'plan_name': planName,
+        'start_date': startDate?.toIso8601String(),
+        'end_date': endDate?.toIso8601String(),
+      });
+      return (res as Map<String, dynamic>)['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> sendMemberExpiryReminderEmail(String memberId, {String? email}) async {
+    try {
+      final res = await ApiClient.post('/v1/members/$memberId/send-expiry-reminder', {
+        if (email != null && email.isNotEmpty) 'email': email,
+      });
+      return (res as Map<String, dynamic>)['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> sendDietPlanEmail({
+    required String memberEmail,
+    required String memberName,
+    required String dietPlanId,
+  }) async {
+    try {
+      final res = await ApiClient.post('/v1/diet-plans/send-email', {
+        'member_email': memberEmail,
+        'member_name': memberName,
+        'diet_plan_id': dietPlanId,
+      });
+      return (res as Map<String, dynamic>)['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
   static Future<double> getMonthlyRevenue([String? _]) async {
     try {
       final res = await ApiClient.get('/v1/reports/monthly-revenue');

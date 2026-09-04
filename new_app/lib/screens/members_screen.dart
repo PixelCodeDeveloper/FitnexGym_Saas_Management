@@ -207,6 +207,164 @@ class _MembersScreenState extends State<MembersScreen> {
     );
   }
 
+  Future<void> _sendReceiptEmail(Member member) async {
+    if (member.email == null || member.email!.isEmpty) {
+      _promptMemberEmailAndSend(member, action: 'receipt');
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Generating PDF Receipt & Sending Email… 📄')));
+    final ok = await DbService.sendMemberReceiptEmail(
+      memberId: member.id,
+      memberEmail: member.email!,
+      amount: member.amountPaid,
+      startDate: member.subscriptionStart,
+      endDate: member.subscriptionEnd,
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? 'Receipt PDF sent to ${member.email}! 📧' : 'Failed to send receipt email'),
+        backgroundColor: ok ? AppTheme.success : AppTheme.error,
+      ));
+    }
+  }
+
+  Future<void> _sendExpiryReminderEmail(Member member) async {
+    if (member.email == null || member.email!.isEmpty) {
+      _promptMemberEmailAndSend(member, action: 'expiry');
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sending Expiry Reminder Email… 📧')));
+    final ok = await DbService.sendMemberExpiryReminderEmail(member.id, email: member.email);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? 'Expiry Reminder sent to ${member.email}! 🚀' : 'Failed to send expiry email'),
+        backgroundColor: ok ? AppTheme.success : AppTheme.error,
+      ));
+    }
+  }
+
+  void _promptMemberEmailAndSend(Member member, {required String action}) {
+    final emailController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(action == 'receipt' ? 'Send Receipt Email' : 'Send Expiry Reminder'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Enter email address for ${member.name}:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                hintText: 'member@email.com',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty) return;
+              Navigator.pop(ctx);
+              if (action == 'receipt') {
+                final ok = await DbService.sendMemberReceiptEmail(
+                  memberId: member.id,
+                  memberEmail: email,
+                  amount: member.amountPaid,
+                  startDate: member.subscriptionStart,
+                  endDate: member.subscriptionEnd,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(ok ? 'Receipt PDF sent to $email! 📧' : 'Failed to send receipt email'),
+                    backgroundColor: ok ? AppTheme.success : AppTheme.error,
+                  ));
+                }
+              } else {
+                final ok = await DbService.sendMemberExpiryReminderEmail(member.id, email: email);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(ok ? 'Expiry Reminder sent to $email! 🚀' : 'Failed to send expiry email'),
+                    backgroundColor: ok ? AppTheme.success : AppTheme.error,
+                  ));
+                }
+              }
+            },
+            child: const Text('Send Email'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEmailOptions(Member member) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
+    final txt    = isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary;
+    final txt2   = isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary;
+    final border = isDark ? AppTheme.darkBorder : AppTheme.lightBorder;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(color: border, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            Text('Email & PDF Options for ${member.name}', style: TextStyle(color: txt, fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: const Color(0xFF0EA5E9).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF0EA5E9), size: 22),
+              ),
+              title: Text('Send Payment Receipt PDF', style: TextStyle(color: txt, fontWeight: FontWeight.w600)),
+              subtitle: Text('Email official PDF receipt & payment proof to member', style: TextStyle(color: txt2, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _sendReceiptEmail(member);
+              },
+            ),
+            Divider(color: border, height: 16),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: AppTheme.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.mark_email_unread_rounded, color: AppTheme.warning, size: 22),
+              ),
+              title: Text('Send Expiry Reminder Email', style: TextStyle(color: txt, fontWeight: FontWeight.w600)),
+              subtitle: Text('Send membership expiry notice email to member', style: TextStyle(color: txt2, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _sendExpiryReminderEmail(member);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmDelete(Member member) {
     showDialog(
       context: context,
@@ -471,9 +629,11 @@ class _MembersScreenState extends State<MembersScreen> {
           Row(
             children: [
               _actionChip(Icons.sms_outlined, 'SMS', const Color(0xFFFF6B2C), () => _sendTwilioSMS(m)),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _actionChip(Icons.chat_rounded, 'WhatsApp', const Color(0xFF22C55E), () => _showWhatsAppOptions(m)),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
+              _actionChip(Icons.picture_as_pdf_rounded, 'PDF / Email', const Color(0xFF0EA5E9), () => _showEmailOptions(m)),
+              const SizedBox(width: 6),
               _actionChip(Icons.autorenew_rounded, 'Renew', activeCyan, () => _openRenewScreen(m)),
             ],
           ),

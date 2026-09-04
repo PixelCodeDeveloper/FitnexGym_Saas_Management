@@ -26,6 +26,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   final _formKey           = GlobalKey<FormState>();
   final _nameController    = TextEditingController();
   final _phoneController   = TextEditingController();
+  final _emailController   = TextEditingController();
   final _amountController  = TextEditingController(text: '1800');
   bool _isSaving = false;
 
@@ -41,6 +42,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _amountController.dispose();
     super.dispose();
   }
@@ -64,6 +66,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
         gymId: gymId,
         name: _nameController.text.trim(),
         phone: InputValidator.sanitizePhone(_phoneController.text),
+        email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
         subscriptionStart: now,
         subscriptionEnd: DateTime(now.year, now.month + months, now.day),
         amountPaid: double.tryParse(_amountController.text.trim()) ?? 1800.0,
@@ -174,6 +177,30 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                         decoration: _fieldDec(
                           hint: 'Enter 10-digit mobile number',
                           icon: Icons.phone_android_rounded,
+                          iconColor: AppTheme.primary,
+                          fillColor: inputFill,
+                          border: border,
+                          hintColor: muted,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Email field
+                      _label('Email Address (For Receipts & Reminders)', muted),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (val) {
+                          if (val != null && val.trim().isNotEmpty) {
+                            return InputValidator.validateEmail(val.trim());
+                          }
+                          return null;
+                        },
+                        style: TextStyle(color: txt, fontWeight: FontWeight.w500),
+                        decoration: _fieldDec(
+                          hint: 'e.g. member@email.com (Optional)',
+                          icon: Icons.email_outlined,
                           iconColor: AppTheme.primary,
                           fillColor: inputFill,
                           border: border,

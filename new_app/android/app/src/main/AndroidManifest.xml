@@ -2,8 +2,9 @@
     <!-- Required for the production app to call the HTTPS API on your VPS. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="new_app"
+        android:label="Fitnex"
         android:name="${applicationName}"
+        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

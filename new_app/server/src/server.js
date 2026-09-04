@@ -11,6 +11,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
 import pinoHttp from 'pino-http';
 import nodemailer from 'nodemailer';
+import PDFDocument from 'pdfkit';
 
 const env = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
@@ -60,6 +61,7 @@ db.query(`
   );
   CREATE INDEX IF NOT EXISTS idx_email_otps_email ON email_otps(email);
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS owner_name varchar(120);
+  ALTER TABLE members ADD COLUMN IF NOT EXISTS email varchar(254);
 `).catch((err) => console.error('[DB] email_otps table check warning:', err.message));
 
 const google = env.GOOGLE_CLIENT_ID ? new OAuth2Client(env.GOOGLE_CLIENT_ID) : null;
@@ -98,7 +100,7 @@ const verifyOtpSchema = z.object({
 });
 
 const gymSchema = z.object({ name: z.string().trim().min(2).max(120), owner_name: z.string().trim().max(120).nullable().optional(), address: z.string().trim().max(500).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(), currency: z.literal('INR').default('INR') });
-const memberSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), plan_id: z.string().uuid().nullable().optional(), subscription_start: parseDate, subscription_end: parseDate, amount_paid: z.coerce.number().min(0).max(10000000) });
+const memberSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), email: z.string().trim().email().max(254).nullable().optional(), plan_id: z.string().uuid().nullable().optional(), subscription_start: parseDate, subscription_end: parseDate, amount_paid: z.coerce.number().min(0).max(10000000) });
 const leadSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), note: z.string().trim().max(2000).nullable().optional(), status: z.enum(['hot', 'warm', 'cold']), follow_up_date: parseDate });
 const dietSchema = z.object({ title: z.string().trim().min(2).max(160), type: z.enum(['veg', 'nonveg']), calories: z.string().trim().max(80), items: z.array(z.string().trim().min(1).max(200)).max(100) });
 const planSchema = z.object({ name: z.string().trim().min(2).max(120), duration_days: z.coerce.number().int().min(1).max(3650), price: z.coerce.number().min(0).max(10000000), description: z.string().trim().max(1000).nullable().optional() });
@@ -369,6 +371,115 @@ app.post('/v1/gym', auth, gymContext, asyncRoute(async (req, res) => {
   res.status(201).json(rows[0]);
 }));
 
+async function generateReceiptPdf({ gym, memberName, amountPaid, planName, startDate, endDate, receiptId }) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const buffers = [];
+      doc.on('data', (d) => buffers.push(d));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      doc.rect(0, 0, 595, 110).fill('#161B26');
+      doc.fillColor('#00C9A7').fontSize(26).font('Helvetica-Bold').text('FITNEX GYM', 40, 30);
+      doc.fillColor('#FFFFFF').fontSize(14).font('Helvetica').text('PAYMENT RECEIPT', 40, 65);
+
+      doc.fillColor('#8E9BAE').fontSize(10).font('Helvetica').text(`RECEIPT NO: ${receiptId}`, 340, 35, { align: 'right' });
+      doc.text(`DATE: ${new Date().toLocaleDateString('en-IN')}`, 340, 55, { align: 'right' });
+
+      doc.fillColor('#1F2937').fontSize(14).font('Helvetica-Bold').text(gym.name || 'Fitnex Gym', 40, 130);
+      if (gym.address) doc.fillColor('#4B5563').fontSize(10).font('Helvetica').text(gym.address, 40, 150);
+      if (gym.phone) doc.fillColor('#4B5563').fontSize(10).font('Helvetica').text(`Phone: ${gym.phone}`, 40, 165);
+
+      doc.moveTo(40, 190).lineTo(555, 190).strokeColor('#E5E7EB').stroke();
+
+      doc.fillColor('#9CA3AF').fontSize(10).font('Helvetica-Bold').text('BILLED TO:', 40, 205);
+      doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text(memberName, 40, 220);
+
+      doc.rect(40, 260, 515, 30).fill('#00C9A7');
+      doc.fillColor('#FFFFFF').fontSize(11).font('Helvetica-Bold').text('DESCRIPTION', 50, 270);
+      doc.text('VALIDITY DATES', 280, 270);
+      doc.text('AMOUNT PAID', 440, 270, { align: 'right' });
+
+      doc.fillColor('#1F2937').fontSize(11).font('Helvetica').text(`Membership Fee - ${planName || 'Pro Plan'}`, 50, 305);
+      doc.fillColor('#4B5563').fontSize(10).text(`${startDate || 'N/A'} to ${endDate || 'N/A'}`, 280, 305);
+      doc.fillColor('#111827').fontSize(12).font('Helvetica-Bold').text(`INR ${amountPaid}`, 440, 305, { align: 'right' });
+
+      doc.moveTo(40, 335).lineTo(555, 335).strokeColor('#E5E7EB').stroke();
+
+      doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text('TOTAL PAID:', 320, 355);
+      doc.fillColor('#00C9A7').fontSize(18).font('Helvetica-Bold').text(`INR ${amountPaid}`, 440, 352, { align: 'right' });
+
+      doc.rect(40, 420, 140, 35).fill('#DCFCE7');
+      doc.fillColor('#15803D').fontSize(12).font('Helvetica-Bold').text('STATUS: PAID', 55, 432);
+
+      doc.fillColor('#9CA3AF').fontSize(9).font('Helvetica').text('Thank you for being a valued member of our gym! Computer-generated receipt.', 40, 750, { align: 'center', width: 515 });
+
+      doc.end();
+    } catch (err) { reject(err); }
+  });
+}
+
+async function generateDietPlanPdf({ gymName, memberName, dietPlan }) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const buffers = [];
+      doc.on('data', (d) => buffers.push(d));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      doc.rect(0, 0, 595, 110).fill('#161B26');
+      doc.fillColor('#00C9A7').fontSize(24).font('Helvetica-Bold').text(gymName || 'FITNEX GYM', 40, 25);
+      doc.fillColor('#FFFFFF').fontSize(15).font('Helvetica-Bold').text('PERSONALIZED NUTRITION & DIET PLAN', 40, 60);
+      doc.fillColor('#8E9BAE').fontSize(10).font('Helvetica').text(`DATE: ${new Date().toLocaleDateString('en-IN')}`, 340, 60, { align: 'right' });
+
+      doc.rect(40, 125, 515, 65).fill('#F8FAFC').stroke('#E2E8F0');
+      doc.fillColor('#64748B').fontSize(9).font('Helvetica-Bold').text('MEMBER NAME', 55, 135);
+      doc.fillColor('#0F172A').fontSize(14).font('Helvetica-Bold').text(memberName, 55, 150);
+
+      doc.fillColor('#64748B').fontSize(9).font('Helvetica-Bold').text('DIET TITLE', 240, 135);
+      doc.fillColor('#0F172A').fontSize(13).font('Helvetica-Bold').text(dietPlan.title || 'Custom Diet', 240, 150);
+
+      doc.fillColor('#64748B').fontSize(9).font('Helvetica-Bold').text('TYPE & CALORIES', 410, 135);
+      const isVeg = (dietPlan.type || '').toLowerCase() === 'veg';
+      doc.fillColor(isVeg ? '#16A34A' : '#DC2626').fontSize(12).font('Helvetica-Bold').text(`${isVeg ? 'PURE VEG' : 'NON-VEG'} | ${dietPlan.calories || 'N/A'}`, 410, 150);
+
+      doc.fillColor('#0F172A').fontSize(13).font('Helvetica-Bold').text('MEAL SCHEDULE & NUTRITION ITEMS', 40, 210);
+      doc.moveTo(40, 226).lineTo(555, 226).strokeColor('#00C9A7').lineWidth(2).stroke();
+
+      let currentY = 238;
+      const items = Array.isArray(dietPlan.items) ? dietPlan.items : [];
+
+      items.forEach((item, index) => {
+        if (currentY > 700) {
+          doc.addPage();
+          currentY = 50;
+        }
+
+        doc.rect(40, currentY, 515, 34).fill(index % 2 === 0 ? '#F1F5F9' : '#FFFFFF');
+        doc.fillColor('#00C9A7').fontSize(14).font('Helvetica-Bold').text('>', 55, currentY + 9);
+        doc.fillColor('#1E293B').fontSize(11).font('Helvetica-Bold').text(`${item}`, 75, currentY + 10, { width: 460 });
+        currentY += 38;
+      });
+
+      if (currentY > 660) {
+        doc.addPage();
+        currentY = 50;
+      } else {
+        currentY += 15;
+      }
+
+      doc.rect(40, currentY, 515, 60).fill('#F0FDF4').stroke('#BBF7D0');
+      doc.fillColor('#166534').fontSize(11).font('Helvetica-Bold').text('Hydration & Fitness Advice:', 55, currentY + 10);
+      doc.fillColor('#15803D').fontSize(9.5).font('Helvetica').text('Drink at least 3 to 4 liters of clean water daily.', 55, currentY + 26);
+      doc.text('Avoid refined sugar and maintain consistent meal timing for optimal progress.', 55, currentY + 40);
+
+      doc.fillColor('#94A3B8').fontSize(9).font('Helvetica').text('Generated by Fitnex Gym Management System', 40, 750, { align: 'center', width: 515 });
+
+      doc.end();
+    } catch (err) { reject(err); }
+  });
+}
+
 function tenantRoutes(path, schema, table, order = 'created_at DESC') {
   app.get(`/v1/${path}`, auth, gymContext, requireGym, asyncRoute(async (req, res) => {
     const { rows } = await db.query(`SELECT * FROM ${table} WHERE gym_id = $1 ORDER BY ${order}`, [req.gym.id]); res.json(rows);
@@ -389,7 +500,189 @@ tenantRoutes('leads', leadSchema, 'leads', 'follow_up_date ASC');
 tenantRoutes('diet-plans', dietSchema, 'diet_plans');
 tenantRoutes('plans', planSchema, 'plans');
 tenantRoutes('payments', paymentSchema, 'payments', 'paid_at DESC');
-tenantRoutes('members', memberSchema, 'members');
+
+app.get('/v1/members', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM members WHERE gym_id = $1 ORDER BY created_at DESC', [req.gym.id]);
+  res.json(rows);
+}));
+app.post('/v1/members', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const body = parse(memberSchema, req.body); const keys = Object.keys(body); const values = keys.map((k) => body[k]);
+  const columns = ['gym_id', ...keys].join(', '); const placeholders = ['$1', ...keys.map((_, i) => `$${i + 2}`)].join(', ');
+  const { rows } = await db.query(`INSERT INTO members (${columns}) VALUES (${placeholders}) RETURNING *`, [req.gym.id, ...values]);
+  await audit(req, 'members.create', 'members', rows[0].id);
+
+  if (rows[0].email && mailTransporter) {
+    let planName = 'Gym Membership';
+    if (rows[0].plan_id) {
+      const p = await db.query('SELECT name FROM plans WHERE id = $1', [rows[0].plan_id]).catch(() => ({ rows: [] }));
+      if (p.rows[0]?.name) planName = p.rows[0].name;
+    }
+    const fromAddress = env.SMTP_FROM || `"Fitnex Gym" <${env.SMTP_USER}>`;
+    mailTransporter.sendMail({
+      from: fromAddress,
+      to: rows[0].email,
+      subject: `Welcome to ${req.gym.name || 'Fitnex Gym'}! 🎉`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #00C9A7; margin-top: 0;">Welcome to ${req.gym.name || 'Fitnex Gym'}!</h2>
+          <p>Hello <strong>${rows[0].name}</strong>,</p>
+          <p>Your membership has been registered. We are excited to support your fitness goals!</p>
+          <div style="background-color: #f8fafc; border-left: 4px solid #00C9A7; padding: 16px; margin: 20px 0; border-radius: 6px;">
+            <p style="margin: 4px 0;"><strong>Plan:</strong> ${planName}</p>
+            <p style="margin: 4px 0;"><strong>Start Date:</strong> ${new Date(rows[0].subscription_start).toLocaleDateString('en-IN')}</p>
+            <p style="margin: 4px 0;"><strong>Expiry Date:</strong> ${new Date(rows[0].subscription_end).toLocaleDateString('en-IN')}</p>
+            <p style="margin: 4px 0;"><strong>Amount Paid:</strong> ₹${rows[0].amount_paid}</p>
+          </div>
+          <p style="color: #64748b; font-size: 13px;">If you have any questions, please contact your gym management.</p>
+        </div>
+      `,
+    }).catch((e) => console.error('[MAIL] Welcome email failed:', e.message));
+  }
+
+  res.status(201).json(rows[0]);
+}));
+app.delete('/v1/members/:id', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const { rowCount } = await db.query('DELETE FROM members WHERE id = $1 AND gym_id = $2', [parse(uuid, req.params.id), req.gym.id]);
+  if (!rowCount) return res.status(404).json({ error: 'Record not found.' });
+  await audit(req, 'members.delete', 'members', req.params.id); res.status(204).end();
+}));
+
+app.post('/v1/members/send-receipt', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const { member_id, member_email, amount, plan_name, start_date, end_date } = req.body || {};
+  if (!member_email) return res.status(400).json({ error: 'Member email is required.' });
+
+  const receiptId = `RCPT-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${crypto.randomInt(1000, 9999)}`;
+  let memberName = 'Valued Member';
+  if (member_id) {
+    const m = await db.query('SELECT name, email FROM members WHERE id = $1 AND gym_id = $2', [member_id, req.gym.id]).catch(() => ({ rows: [] }));
+    if (m.rows[0]?.name) memberName = m.rows[0].name;
+  }
+
+  const pdfBuffer = await generateReceiptPdf({
+    gym: req.gym,
+    memberName,
+    amountPaid: amount || 0,
+    planName: plan_name || 'Membership Fee',
+    startDate: start_date ? new Date(start_date).toLocaleDateString('en-IN') : 'N/A',
+    endDate: end_date ? new Date(end_date).toLocaleDateString('en-IN') : 'N/A',
+    receiptId,
+  });
+
+  if (mailTransporter) {
+    const fromAddress = env.SMTP_FROM || `"Fitnex Billing" <${env.SMTP_USER}>`;
+    await mailTransporter.sendMail({
+      from: fromAddress,
+      to: member_email,
+      subject: `Payment Receipt: ${receiptId} - ${req.gym.name || 'Fitnex Gym'}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #00C9A7; margin-top: 0;">Payment Receipt</h2>
+          <p>Hello <strong>${memberName}</strong>,</p>
+          <p>Thank you for your payment. Your fee receipt is attached to this email as a PDF document.</p>
+          <div style="background-color: #f8fafc; border-left: 4px solid #00C9A7; padding: 16px; margin: 20px 0; border-radius: 6px;">
+            <p style="margin: 4px 0;"><strong>Receipt ID:</strong> ${receiptId}</p>
+            <p style="margin: 4px 0;"><strong>Amount Paid:</strong> ₹${amount || 0}</p>
+            <p style="margin: 4px 0;"><strong>Plan:</strong> ${plan_name || 'Membership Renewal'}</p>
+            <p style="margin: 4px 0;"><strong>Status:</strong> <span style="color: #16a34a; font-weight: bold;">PAID</span></p>
+          </div>
+          <p style="color: #64748b; font-size: 13px;">Please find your downloadable PDF receipt attached below.</p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: `Payment_Receipt_${receiptId}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  }
+
+  res.json({ success: true, message: `Receipt sent to ${member_email}` });
+}));
+
+app.post('/v1/members/:id/send-expiry-reminder', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM members WHERE id = $1 AND gym_id = $2', [req.params.id, req.gym.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Member not found.' });
+
+  const m = rows[0];
+  const targetEmail = req.body.email || m.email;
+  if (!targetEmail) return res.status(400).json({ error: 'Member does not have an email address configured.' });
+
+  const now = new Date();
+  const endDate = new Date(m.subscription_end);
+  const isExpired = endDate < now;
+  const daysDiff = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+
+  if (mailTransporter) {
+    const fromAddress = env.SMTP_FROM || `"Fitnex Gym" <${env.SMTP_USER}>`;
+    await mailTransporter.sendMail({
+      from: fromAddress,
+      to: targetEmail,
+      subject: `Membership Expiry Notice: ${m.name} - ${req.gym.name || 'Fitnex Gym'}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: ${isExpired ? '#dc2626' : '#f59e0b'}; margin-top: 0;">${isExpired ? 'Membership Expired' : 'Membership Expiring Soon'}</h2>
+          <p>Hello <strong>${m.name}</strong>,</p>
+          <p>${isExpired ? 'Your gym membership has expired.' : `Your gym membership will expire in <strong>${daysDiff} days</strong>.`}</p>
+          <div style="background-color: #f8fafc; border-left: 4px solid ${isExpired ? '#dc2626' : '#f59e0b'}; padding: 16px; margin: 20px 0; border-radius: 6px;">
+            <p style="margin: 4px 0;"><strong>Expiry Date:</strong> ${endDate.toLocaleDateString('en-IN')}</p>
+            <p style="margin: 4px 0;"><strong>Gym Contact:</strong> ${req.gym.phone || 'Contact Front Desk'}</p>
+          </div>
+          <p>Please renew your plan to continue enjoying gym facilities.</p>
+        </div>
+      `,
+    });
+  }
+
+  res.json({ success: true, message: `Expiry reminder sent to ${targetEmail}` });
+}));
+
+app.post('/v1/diet-plans/send-email', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const { member_email, member_name, diet_plan_id } = req.body || {};
+  if (!member_email) return res.status(400).json({ error: 'Member email is required.' });
+
+  const { rows } = await db.query('SELECT * FROM diet_plans WHERE id = $1 AND gym_id = $2', [diet_plan_id, req.gym.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Diet plan not found.' });
+
+  const dietPlan = rows[0];
+  const pdfBuffer = await generateDietPlanPdf({
+    gymName: req.gym.name || 'Fitnex Gym',
+    memberName: member_name || 'Valued Member',
+    dietPlan,
+  });
+
+  if (mailTransporter) {
+    const fromAddress = env.SMTP_FROM || `"Fitnex Nutrition" <${env.SMTP_USER}>`;
+    await mailTransporter.sendMail({
+      from: fromAddress,
+      to: member_email,
+      subject: `Your Personalized Diet Plan: ${dietPlan.title} - ${req.gym.name || 'Fitnex Gym'}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #00C9A7; margin-top: 0;">Your Diet Plan is Ready! 🥗</h2>
+          <p>Hello <strong>${member_name || 'Member'}</strong>,</p>
+          <p>Your trainer at <strong>${req.gym.name || 'Fitnex Gym'}</strong> has assigned a personalized diet plan for you: <strong>${dietPlan.title}</strong>.</p>
+          <div style="background-color: #f8fafc; border-left: 4px solid #00C9A7; padding: 16px; margin: 20px 0; border-radius: 6px;">
+            <p style="margin: 4px 0;"><strong>Plan Title:</strong> ${dietPlan.title}</p>
+            <p style="margin: 4px 0;"><strong>Type:</strong> ${dietPlan.type === 'veg' ? '🟢 Pure Veg' : '🔴 Non-Veg'}</p>
+            <p style="margin: 4px 0;"><strong>Calorie Target:</strong> ${dietPlan.calories}</p>
+          </div>
+          <p style="color: #64748b; font-size: 13px;">Your complete meal schedule and nutrition PDF is attached below.</p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: `Diet_Plan_${(dietPlan.title || 'Fitnex').replaceAll(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  }
+
+  res.json({ success: true, message: `Diet plan PDF sent to ${member_email}` });
+}));
 app.patch('/v1/members/:id', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
   const body = parse(memberSchema.partial(), req.body); if (!Object.keys(body).length) return res.status(400).json({ error: 'No changes supplied.' });
   const keys = Object.keys(body); const set = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');

@@ -84,6 +84,139 @@ class _DietScreenState extends State<DietScreen> {
     );
   }
 
+  Future<void> _sendDietEmailDialog(DietPlan plan) async {
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    bool sending = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
+            final txt = isDark ? Colors.white : Colors.black;
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF3B82F6), size: 24),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Send Diet Plan PDF',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: txt),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'An attractive PDF will be generated and emailed to member.',
+                    style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Member Name',
+                      hintText: 'e.g. Rahul Sharma',
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: 'Member Email',
+                      hintText: 'e.g. rahul@gmail.com',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: sending
+                          ? null
+                          : () async {
+                              final email = emailCtrl.text.trim();
+                              final name = nameCtrl.text.trim();
+                              if (email.isEmpty || !email.contains('@')) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter a valid email address')),
+                                );
+                                return;
+                              }
+                              setModalState(() => sending = true);
+                              final success = await DbService.sendDietPlanEmail(
+                                memberEmail: email,
+                                memberName: name.isEmpty ? 'Gym Member' : name,
+                                dietPlanId: plan.id,
+                              );
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      success
+                                          ? 'Diet Plan PDF sent successfully to $email! 📧 PDF'
+                                          : 'Failed to send Diet Plan PDF.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3B82F6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: sending
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Icon(Icons.send_rounded),
+                      label: Text(sending ? 'Sending PDF...' : 'Send Diet Plan PDF', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark  = Theme.of(context).brightness == Brightness.dark;
@@ -243,6 +376,25 @@ class _DietScreenState extends State<DietScreen> {
                     Icon(Icons.send_rounded, size: 13, color: Color(0xFF22C55E)),
                     SizedBox(width: 4),
                     Text('WhatsApp', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => _sendDietEmailDialog(plan),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf_rounded, size: 13, color: Color(0xFF3B82F6)),
+                    SizedBox(width: 4),
+                    Text('Email PDF', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 11, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
