@@ -197,8 +197,10 @@ class _RenewMemberScreenState extends State<RenewMemberScreen> {
                             ),
                             items: [
                               DropdownMenuItem(value: 1,  child: Text('1 Month Extension (₹1,800)',   style: TextStyle(color: txt))),
+                              DropdownMenuItem(value: 2,  child: Text('2 Months Extension (₹3,600)',  style: TextStyle(color: txt))),
                               DropdownMenuItem(value: 3,  child: Text('3 Months Extension (₹5,400)',  style: TextStyle(color: txt))),
                               DropdownMenuItem(value: 6,  child: Text('6 Months Extension (₹10,800)', style: TextStyle(color: txt))),
+                              DropdownMenuItem(value: 7,  child: Text('7 Months Extension (₹12,600)', style: TextStyle(color: txt))),
                               DropdownMenuItem(value: 12, child: Text('1 Year Extension (₹21,600)',   style: TextStyle(color: txt))),
                             ],
                             onChanged: (val) {

@@ -29,8 +29,10 @@ class _AddPlanScreenState extends State<AddPlanScreen> {
 
   final List<_DurationOption> _durations = const [
     _DurationOption(30,  '1 Month Plan',   'Valid for 30 days'),
+    _DurationOption(60,  '2 Months Plan',  'Valid for 60 days'),
     _DurationOption(90,  '3 Months Plan',  'Valid for 90 days'),
     _DurationOption(180, '6 Months Plan',  'Valid for 180 days'),
+    _DurationOption(210, '7 Months Plan',  'Valid for 210 days'),
     _DurationOption(365, '1 Year Plan',    'Valid for 365 days'),
   ];
   int _selectedDuration = 0;
