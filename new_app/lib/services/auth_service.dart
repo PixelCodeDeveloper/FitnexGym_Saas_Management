@@ -44,11 +44,19 @@ class AuthService {
   static Future<AuthSession> signInWithEmail(String email, String password) =>
       _authenticate('/v1/auth/login', {'email': email, 'password': password});
 
-  static Future<AuthSession> signUpWithEmail(String email, String password) =>
-      _authenticate('/v1/auth/register', {
-        'email': email,
-        'password': password,
-      });
+  static Future<void> signUpWithEmail(String email, String password) async {
+    await ApiClient.post('/v1/auth/register', {
+      'email': email,
+      'password': password,
+    });
+  }
+
+  static Future<void> loginRequestOtp(String email, String password) async {
+    await ApiClient.post('/v1/auth/login-request-otp', {
+      'email': email,
+      'password': password,
+    });
+  }
 
   static Future<void> sendOtp(String email, {String purpose = 'signup'}) async {
     await ApiClient.post('/v1/auth/send-otp', {

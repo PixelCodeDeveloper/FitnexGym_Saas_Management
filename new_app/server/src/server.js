@@ -78,7 +78,7 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 500, standardHeaders: 'draf
 const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Too many attempts. Try again later.' } });
 
 const emailSchema = z.string().trim().email().max(254).transform((x) => x.toLowerCase());
-const passwordSchema = z.string().min(12).max(128);
+const passwordSchema = z.string().min(8).max(128);
 const parseDate = z.string().transform((s) => {
   const d = new Date(s);
   if (isNaN(d.getTime())) throw new Error('Invalid date format');
@@ -254,9 +254,62 @@ app.post('/v1/auth/register', authLimit, asyncRoute(async (req, res) => {
   try {
     const { rows } = await db.query('INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email', [email, passwordHash]);
     await db.query(`INSERT INTO gym_billing (owner_id, expires_at) VALUES ($1, now() + interval '14 days') ON CONFLICT (owner_id) DO NOTHING`, [rows[0].id]).catch(() => {});
-    req.user = rows[0]; await audit(req, 'auth.register', 'user', rows[0].id); await issue(res, rows[0]);
+    req.user = rows[0];
+    await audit(req, 'auth.register', 'user', rows[0].id);
+    res.status(201).json({ success: true, message: 'Account created successfully! Please sign in with your email and password.' });
   } catch (e) { if (e.code === '23505') return res.status(409).json({ error: 'An account already exists for this email.' }); throw e; }
 }));
+
+app.post('/v1/auth/login-request-otp', authLimit, asyncRoute(async (req, res) => {
+  const { email, password } = parse(userSchema, req.body);
+  const { rows } = await db.query('SELECT id, email, password_hash FROM users WHERE email = $1 AND disabled_at IS NULL', [email]);
+  if (!rows[0] || !rows[0].password_hash || !await argon2.verify(rows[0].password_hash, password)) {
+    return res.status(401).json({ error: 'Invalid email or password.' });
+  }
+
+  const purpose = 'login';
+  await db.query('DELETE FROM email_otps WHERE email = $1 AND purpose = $2', [email, purpose]);
+
+  const otpCode = String(crypto.randomInt(100000, 999999));
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await db.query(
+    'INSERT INTO email_otps (email, otp_code, purpose, expires_at) VALUES ($1, $2, $3, $4)',
+    [email, otpCode, purpose, expiresAt]
+  );
+
+  console.log(`\n========================================`);
+  console.log(`[EMAIL OTP] Login 2FA Code for ${email}: ${otpCode}`);
+  console.log(`========================================\n`);
+
+  if (mailTransporter) {
+    const fromAddress = env.SMTP_FROM || `"Fitnex Auth" <${env.SMTP_USER}>`;
+    try {
+      await mailTransporter.sendMail({
+        from: fromAddress,
+        to: email,
+        subject: `Your Fitnex Verification Code: ${otpCode}`,
+        text: `Your verification code for Fitnex sign-in is ${otpCode}. It is valid for 10 minutes.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+            <h2 style="color: #6366f1; text-align: center;">Fitnex Security</h2>
+            <p>Hello,</p>
+            <p>Your verification code for <strong>Sign In</strong> is:</p>
+            <div style="background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #1f2937; border-radius: 8px; margin: 20px 0;">
+              ${otpCode}
+            </div>
+            <p style="color: #6b7280; font-size: 13px;">This code will expire in 10 minutes. If you did not attempt to sign in, please change your password immediately.</p>
+          </div>
+        `,
+      });
+    } catch (mailErr) {
+      console.error('[NODEMAILER] Error sending login OTP email:', mailErr.message);
+    }
+  }
+
+  res.json({ success: true, message: `Verification code sent to ${email}` });
+}));
+
 app.post('/v1/auth/login', authLimit, asyncRoute(async (req, res) => {
   const { email, password } = parse(userSchema, req.body);
   const { rows } = await db.query('SELECT id, email, password_hash FROM users WHERE email = $1 AND disabled_at IS NULL', [email]);
