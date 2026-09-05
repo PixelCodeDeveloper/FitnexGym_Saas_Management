@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/member.dart';
 import '../services/db_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/subscription_guard.dart';
 import 'forms/add_member_screen.dart';
 import 'forms/edit_member_screen.dart';
 import 'forms/renew_member_screen.dart';
@@ -643,7 +644,13 @@ class _MembersScreenState extends State<MembersScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddMemberScreen,
+        onPressed: () {
+          SubscriptionGuard.checkActive(
+            context,
+            featureName: 'add new members',
+            onActive: _openAddMemberScreen,
+          );
+        },
         backgroundColor: activeCyan,
         foregroundColor: Colors.black,
         elevation: 0,

@@ -7,6 +7,7 @@ import '../models/lead.dart';
 import '../models/payment.dart';
 import '../services/db_service.dart';
 import '../theme/app_theme.dart';
+import 'paywall_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int tabIndex)? onNavigateTab;
@@ -24,6 +25,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
+  bool _isBillingActive = true;
   int _totalMembers = 0;
   int _expiringCount = 0;
   int _hotLeadsCount = 0;
@@ -56,6 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _isLoading = true);
     try {
       final gym      = await DbService.getGym();
+      final isBilling= await DbService.isGymBillingActive();
       final members  = await DbService.getMembers();
       final leads    = await DbService.getLeads();
       final plans    = await DbService.getPlans();
@@ -104,6 +107,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       setState(() {
         _gym             = gym;
+        _isBillingActive = isBilling;
         _totalMembers    = members.length;
         _expiringCount   = expList.length;
         _hotLeadsCount   = hotList.length;
@@ -225,6 +229,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
+
+              if (!_isBillingActive)
+                Container(
+                  margin: const EdgeInsets.only(top: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock_outline_rounded, color: Color(0xFFF59E0B), size: 22),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'FREE PLAN (VIEW ONLY)\nUpgrade to Pro to add & manage members.',
+                          style: TextStyle(color: Color(0xFFF59E0B), fontSize: 12, fontWeight: FontWeight.bold, height: 1.3),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Scaffold(body: PaywallScreen()))),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF59E0B),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Upgrade ✨', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
 
               const SizedBox(height: 24),
 

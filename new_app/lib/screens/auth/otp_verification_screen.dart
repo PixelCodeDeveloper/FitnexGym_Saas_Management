@@ -101,12 +101,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
 
     try {
-      await AuthService.verifyOtp(
+      final session = await AuthService.verifyOtp(
         email: _email,
         otp: code,
         purpose: _purpose,
         password: _password,
       );
+
+      final isSetupDone = await AuthService.isGymSetupCompleted(session.userId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +117,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             backgroundColor: AppTheme.success,
           ),
         );
-        Navigator.pushNamedAndRemoveUntil(context, '/auth-check', (route) => false);
+        if (!isSetupDone || _purpose == 'signup') {
+          Navigator.pushNamedAndRemoveUntil(context, '/onboarding', (route) => false);
+        } else {
+          Navigator.pushNamedAndRemoveUntil(context, '/auth-check', (route) => false);
+        }
       }
     } catch (e) {
       setState(() {

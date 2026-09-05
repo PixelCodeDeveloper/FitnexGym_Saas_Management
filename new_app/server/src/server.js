@@ -267,22 +267,35 @@ app.post('/v1/auth/send-otp', authLimit, asyncRoute(async (req, res) => {
   console.log(`========================================\n`);
 
   if (mailTransporter) {
-    const fromAddress = env.SMTP_FROM || `"Fitnex Auth" <${env.SMTP_USER}>`;
+    const fromAddress = env.SMTP_FROM || `"Fitnex Security" <${env.SMTP_USER}>`;
     try {
       await mailTransporter.sendMail({
         from: fromAddress,
         to: email,
-        subject: `Your Fitnex Verification Code: ${otpCode}`,
-        text: `Your verification code for Fitnex is ${otpCode}. It is valid for 10 minutes.`,
+        subject: `Fitnex Security Verification Code`,
+        headers: {
+          'X-Priority': '1 (Highest)',
+          'X-MSMail-Priority': 'High',
+          'Importance': 'High',
+          'X-Mailer': 'Fitnex Transactional Security Mailer',
+        },
+        text: `Your security verification code for Fitnex is ${otpCode}. Valid for 10 minutes. If you did not request this code, please ignore this email.`,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-            <h2 style="color: #6366f1; text-align: center;">Fitnex</h2>
-            <p>Hello,</p>
-            <p>Your verification code for <strong>${purpose === 'signup' ? 'Sign Up' : 'Sign In'}</strong> is:</p>
-            <div style="background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #1f2937; border-radius: 8px; margin: 20px 0;">
-              ${otpCode}
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
+            <div style="text-align: center; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;">
+              <h2 style="color: #6366f1; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px;">FITNEX GYM SAAS</h2>
             </div>
-            <p style="color: #6b7280; font-size: 13px;">This code will expire in 10 minutes. If you did not request this code, please ignore this email.</p>
+            <div style="padding: 20px 0;">
+              <p style="font-size: 15px; color: #334155; margin-bottom: 12px;">Hello,</p>
+              <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">Use the following security code to complete your <strong>${purpose === 'signup' ? 'Sign Up' : 'Sign In'}</strong> verification on Fitnex:</p>
+              <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 18px; text-align: center; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #00c9a7; border-radius: 10px; margin: 20px 0;">
+                ${otpCode}
+              </div>
+              <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-top: 20px;">This code expires in 10 minutes. For your security, never share this OTP with anyone.</p>
+            </div>
+            <div style="text-align: center; padding-top: 16px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8;">
+              <p style="margin: 0;">&copy; ${new Date().getFullYear()} Fitnex Gym SaaS Platform. All rights reserved.</p>
+            </div>
           </div>
         `,
       });

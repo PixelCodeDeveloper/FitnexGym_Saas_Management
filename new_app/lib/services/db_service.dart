@@ -225,7 +225,6 @@ class DbService {
     final now = DateTime.now();
 
     if (cachedDate != null && cachedDate.isAfter(now)) {
-      syncActiveSubscriptionWithServer();
       return true;
     }
 
@@ -245,7 +244,7 @@ class DbService {
       }
     } catch (_) {}
 
-    return await syncActiveSubscriptionWithServer();
+    return false;
   }
 
   static Future<SubscriptionInfo> getSubscriptionInfo([String? userId]) async {
@@ -256,17 +255,16 @@ class DbService {
     final cachedDate = await _getBestCachedExpiry(uid);
     final cachedPlan = await _storage.read(key: planKey) ??
         await _storage.read(key: _globalPlanKey) ??
-        'Pro Yearly';
+        'Free Plan';
     final now = DateTime.now();
 
     if (cachedDate != null && cachedDate.isAfter(now)) {
-      syncActiveSubscriptionWithServer();
       final remaining = cachedDate.difference(now).inDays + 1;
       return SubscriptionInfo(
         active: true,
         expiresAt: cachedDate,
         daysRemaining: remaining,
-        planName: cachedPlan,
+        planName: cachedPlan == 'Free Plan' ? 'Pro Plan' : cachedPlan,
         isTrial: false,
         isFirstTime: false,
       );
@@ -288,26 +286,13 @@ class DbService {
       }
     } catch (_) {}
 
-    final synced = await syncActiveSubscriptionWithServer();
-    if (synced) {
-      final yearEnd = now.add(const Duration(days: 365));
-      return SubscriptionInfo(
-        active: true,
-        expiresAt: yearEnd,
-        daysRemaining: 365,
-        planName: 'Pro Yearly',
-        isTrial: false,
-        isFirstTime: false,
-      );
-    }
-
-    return SubscriptionInfo(
-      active: true,
-      expiresAt: now.add(const Duration(days: 365)),
-      daysRemaining: 365,
-      planName: 'Pro Yearly',
+    return const SubscriptionInfo(
+      active: false,
+      expiresAt: null,
+      daysRemaining: 0,
+      planName: 'Free Plan (Unsubscribed)',
       isTrial: false,
-      isFirstTime: false,
+      isFirstTime: true,
     );
   }
 

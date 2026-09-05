@@ -149,6 +149,19 @@ class AuthService {
     );
   }
 
+  static const _setupCompletedKey = 'gym_setup_completed';
+
+  static Future<bool> isGymSetupCompleted([String? uid]) async {
+    final userId = uid ?? await currentUserId ?? 'default';
+    final val = await _storage.read(key: '${_setupCompletedKey}_$userId');
+    return val == 'true';
+  }
+
+  static Future<void> markGymSetupCompleted([String? uid]) async {
+    final userId = uid ?? await currentUserId ?? 'default';
+    await _storage.write(key: '${_setupCompletedKey}_$userId', value: 'true');
+  }
+
   static Future<void> saveGymId(String gymId) =>
       _storage.write(key: _gymIdKey, value: gymId);
   static Future<String?> getGymId() => _storage.read(key: _gymIdKey);

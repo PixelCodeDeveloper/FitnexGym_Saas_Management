@@ -5,6 +5,7 @@ import '../models/diet_plan.dart';
 import '../models/member.dart';
 import '../services/db_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/subscription_guard.dart';
 import 'forms/add_diet_plan_screen.dart';
 
 class DietScreen extends StatefulWidget {
@@ -578,7 +579,13 @@ class _DietScreenState extends State<DietScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddDietPlanScreen,
+        onPressed: () {
+          SubscriptionGuard.checkActive(
+            context,
+            featureName: 'create new diet plans',
+            onActive: _openAddDietPlanScreen,
+          );
+        },
         backgroundColor: activeCyan,
         foregroundColor: Colors.black,
         elevation: 2,

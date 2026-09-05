@@ -72,6 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       final created = await DbService.createGym(gym);
       await AuthService.saveGymId(created.id);
+      await AuthService.markGymSetupCompleted(userId);
       if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
     } catch (e) {
       if (mounted) {

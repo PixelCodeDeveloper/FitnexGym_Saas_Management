@@ -8,6 +8,7 @@ import 'support/help_support_screen.dart';
 import 'legal/privacy_policy_screen.dart';
 import 'legal/terms_conditions_screen.dart';
 import 'forms/edit_gym_screen.dart';
+import '../utils/subscription_guard.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -46,15 +47,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _openEditGymScreen() async {
     if (_gym == null) return;
-    final updated = await Navigator.push<Gym>(
+    SubscriptionGuard.checkActive(
       context,
-      MaterialPageRoute(
-        builder: (_) => EditGymScreen(currentGym: _gym!),
-      ),
+      featureName: 'edit gym profile details',
+      onActive: () async {
+        final updated = await Navigator.push<Gym>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EditGymScreen(currentGym: _gym!),
+          ),
+        );
+        if (updated != null) {
+          setState(() => _gym = updated);
+        }
+      },
     );
-    if (updated != null) {
-      setState(() => _gym = updated);
-    }
   }
 
   Future<void> _handleLogout() async {

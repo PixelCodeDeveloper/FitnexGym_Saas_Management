@@ -17,28 +17,19 @@ class AuthGuard {
       final userId = await AuthService.currentUserId;
       if (userId == null) return '/login';
 
-      final gym = await DbService.getGym(userId);
+      final isSetupDone = await AuthService.isGymSetupCompleted(userId);
+      if (!isSetupDone) {
+        SecureLogger.log('Gym onboarding not completed → Onboarding', tag: 'GUARD');
+        return '/onboarding';
+      }
 
+      final gym = await DbService.getGym(userId);
       if (gym != null) {
         await AuthService.saveGymId(gym.id);
-        final billingActive = await DbService.isGymBillingActive(userId);
-        if (!billingActive) {
-          SecureLogger.log('Billing expired → Paywall', tag: 'GUARD');
-          return '/paywall';
-        }
-        SecureLogger.log('All checks passed → Dashboard', tag: 'GUARD');
-        return '/dashboard';
       }
 
-      // Check if user already has a saved gym ID in secure storage
-      final savedGymId = await AuthService.getGymId();
-      if (savedGymId != null && savedGymId.isNotEmpty) {
-        SecureLogger.log('Saved gym ID exists → Dashboard', tag: 'GUARD');
-        return '/dashboard';
-      }
-
-      SecureLogger.log('No gym found → Onboarding', tag: 'GUARD');
-      return '/onboarding';
+      SecureLogger.log('Auth check passed → Dashboard', tag: 'GUARD');
+      return '/dashboard';
     } catch (e) {
       SecureLogger.log('Guard exception ($e) → Fallback', tag: 'GUARD');
       if (await AuthService.isAuthenticated) {

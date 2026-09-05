@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/subscription_plan.dart';
 import '../services/db_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/subscription_guard.dart';
 import 'forms/add_plan_screen.dart';
 
 class PlansScreen extends StatefulWidget {
@@ -67,7 +68,13 @@ class _PlansScreenState extends State<PlansScreen> {
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddPlanScreen,
+        onPressed: () {
+          SubscriptionGuard.checkActive(
+            context,
+            featureName: 'create new membership plans',
+            onActive: _openAddPlanScreen,
+          );
+        },
         backgroundColor: activeCyan,
         foregroundColor: Colors.black,
         elevation: 0,

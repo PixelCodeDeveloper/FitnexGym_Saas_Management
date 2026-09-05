@@ -8,6 +8,7 @@ import '../models/payment.dart';
 import '../services/db_service.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/subscription_guard.dart';
 import 'forms/add_lead_screen.dart';
 
 class LeadsScreen extends StatefulWidget {
@@ -421,7 +422,13 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddLeadScreen,
+        onPressed: () {
+          SubscriptionGuard.checkActive(
+            context,
+            featureName: 'add new leads',
+            onActive: _openAddLeadScreen,
+          );
+        },
         backgroundColor: activeCyan,
         foregroundColor: Colors.black,
         elevation: 0,

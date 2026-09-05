@@ -12,6 +12,7 @@ import 'reports_screen.dart';
 import 'settings_screen.dart';
 import 'subscription_screen.dart';
 import 'notifications_screen.dart';
+import 'support/help_support_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -289,7 +290,7 @@ class _MainLayoutState extends State<MainLayout> {
                       title: 'Help & Support',
                       txtPrimary: txtPrimary,
                       txtSecondary: txtSecondary,
-                      onTap: _showHelpSupportDialog,
+                      onTap: _openHelpSupportScreen,
                     ),
                     _drawerActionItem(
                       icon: Icons.logout_rounded,
@@ -372,50 +373,11 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  void _showHelpSupportDialog() {
-    Navigator.pop(context);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF131929),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.help_outline_rounded, color: Color(0xFF00E5C0)),
-            SizedBox(width: 10),
-            Text('Help & Support', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Need assistance with your Fitnex account?', style: TextStyle(color: Color(0xFF8896B3), fontSize: 14)),
-            SizedBox(height: 14),
-            Row(
-              children: [
-                Icon(Icons.email_outlined, color: Color(0xFF00E5C0), size: 18),
-                SizedBox(width: 8),
-                Text('support@fitnex.com', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-              ],
-            ),
-            SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.phone_outlined, color: Color(0xFF00E5C0), size: 18),
-                SizedBox(width: 8),
-                Text('+91 98765 43210', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close', style: TextStyle(color: Color(0xFF00E5C0), fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+  void _openHelpSupportScreen() {
+    _scaffoldKey.currentState?.closeDrawer();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
     );
   }
 
