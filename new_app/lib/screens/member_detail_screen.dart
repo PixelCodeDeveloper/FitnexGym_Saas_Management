@@ -46,6 +46,19 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       _dietTemplates = results[1] as List<DietPlan>;
       final allPayments = results[2] as List<Payment>;
       _paymentHistory = allPayments.where((p) => p.memberId == _member.id).toList();
+      if (_paymentHistory.isEmpty && _member.amountPaid > 0) {
+        _paymentHistory = [
+          Payment(
+            id: 'initial_${_member.id}',
+            gymId: _member.gymId,
+            memberId: _member.id,
+            memberName: _member.name,
+            amount: _member.amountPaid,
+            planName: 'Initial Membership Joining Fee',
+            paidAt: _member.subscriptionStart,
+          ),
+        ];
+      }
     } catch (_) {
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -294,6 +307,136 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                             : const Icon(Icons.check_circle_rounded),
                         label: Text(isAssigning ? 'Assigning...' : 'Confirm Diet Assignment', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openAddPaymentDialog() async {
+    final amountCtrl = TextEditingController(text: '1800');
+    final descCtrl = TextEditingController(text: 'Membership Fee Renewal');
+    bool saving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
+            final txt = isDark ? Colors.white : Colors.black;
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36, height: 4,
+                        decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(children: [
+                      const Icon(Icons.add_card_rounded, color: AppTheme.success, size: 24),
+                      const SizedBox(width: 10),
+                      Text('Record Payment Entry', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: txt)),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text('Log a payment transaction for ${_member.name}', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                    const SizedBox(height: 16),
+
+                    TextField(
+                      controller: amountCtrl,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: 'Payment Amount (₹) *',
+                        prefixIcon: const Icon(Icons.currency_rupee_rounded, color: AppTheme.success),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      controller: descCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Description / Plan Name',
+                        prefixIcon: const Icon(Icons.description_outlined),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: saving
+                            ? null
+                            : () async {
+                                final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                                if (amt <= 0) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid payment amount.')));
+                                  return;
+                                }
+                                setModalState(() => saving = true);
+                                try {
+                                  final p = Payment(
+                                    id: '',
+                                    gymId: _member.gymId,
+                                    memberId: _member.id,
+                                    memberName: _member.name,
+                                    amount: amt,
+                                    planName: descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : 'Membership Fee',
+                                    paidAt: DateTime.now(),
+                                  );
+                                  final created = await DbService.addPayment(p);
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  if (mounted) {
+                                    setState(() {
+                                      _paymentHistory.insert(0, created);
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Logged payment of ₹${amt.toInt()} for ${_member.name}! 💰')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to log payment: $e')));
+                                } finally {
+                                  if (ctx.mounted) setModalState(() => saving = false);
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.success,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: saving
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Icon(Icons.save_rounded),
+                        label: Text(saving ? 'Saving Entry...' : 'Save Payment Entry', style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -647,11 +790,28 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(children: [
-                            const Icon(Icons.history_rounded, color: AppTheme.accent, size: 20),
-                            const SizedBox(width: 8),
-                            Text('Payment Transaction History', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt)),
-                          ]),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(children: [
+                                const Icon(Icons.history_rounded, color: AppTheme.accent, size: 20),
+                                const SizedBox(width: 8),
+                                Text('Payment Transaction History', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt)),
+                              ]),
+                              InkWell(
+                                onTap: _openAddPaymentDialog,
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.success.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text('+ Record Payment', style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold, fontSize: 11)),
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 12),
                           if (_paymentHistory.isEmpty) ...[
                             Padding(

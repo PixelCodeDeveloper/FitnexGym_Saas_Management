@@ -139,6 +139,8 @@ class DbService {
   static Future<Payment> recordPayment(Payment x) async => Payment.fromJson(
     await ApiClient.post('/v1/payments', x.toJson()) as Map<String, dynamic>,
   );
+  static Future<Payment> addPayment(Payment x) async => recordPayment(x);
+
   static const _globalExpiryKey = 'saved_sub_expiry_global';
   static const _globalPlanKey = 'saved_sub_plan_global';
 

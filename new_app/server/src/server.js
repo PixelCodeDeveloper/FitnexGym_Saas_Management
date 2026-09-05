@@ -576,8 +576,20 @@ app.get('/v1/members', auth, gymContext, requireGym, asyncRoute(async (req, res)
 app.post('/v1/members', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
   const body = parse(memberSchema, req.body); const keys = Object.keys(body); const values = keys.map((k) => body[k]);
   const columns = ['gym_id', ...keys].join(', '); const placeholders = ['$1', ...keys.map((_, i) => `$${i + 2}`)].join(', ');
-  const { rows } = await db.query(`INSERT INTO members (${columns}) VALUES (${placeholders}) RETURNING *`, [req.gym.id, ...values]);
   await audit(req, 'members.create', 'members', rows[0].id);
+
+  if (Number(rows[0].amount_paid) > 0) {
+    let planName = 'Gym Membership Fee';
+    if (rows[0].plan_id) {
+      const p = await db.query('SELECT name FROM plans WHERE id = $1', [rows[0].plan_id]).catch(() => ({ rows: [] }));
+      if (p.rows[0]?.name) planName = p.rows[0].name;
+    }
+    await db.query(
+      `INSERT INTO payments (gym_id, member_id, member_name, amount, plan_name, paid_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [req.gym.id, rows[0].id, rows[0].name, rows[0].amount_paid, planName, rows[0].subscription_start || new Date()]
+    ).catch((e) => console.error('[DB] Automatic payment record error:', e.message));
+  }
 
   if (rows[0].email && mailTransporter) {
     let planName = 'Gym Membership';
