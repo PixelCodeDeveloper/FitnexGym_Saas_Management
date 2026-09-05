@@ -28,6 +28,17 @@ class _MembersScreenState extends State<MembersScreen> {
   void initState() {
     super.initState();
     _loadMembers();
+    DbService.membersRefreshNotifier.addListener(_onMembersChanged);
+  }
+
+  @override
+  void dispose() {
+    DbService.membersRefreshNotifier.removeListener(_onMembersChanged);
+    super.dispose();
+  }
+
+  void _onMembersChanged() {
+    if (mounted) _loadMembers();
   }
 
   Future<void> _loadMembers() async {

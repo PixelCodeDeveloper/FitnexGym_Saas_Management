@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/diet_plan.dart';
 import '../models/gym.dart';
@@ -19,6 +20,12 @@ class DbService {
   static const _subExpiryPrefix = 'saved_sub_expiry_';
   static const _subPlanPrefix = 'saved_sub_plan_';
   static final _storage = FlutterSecureStorage();
+
+  static final ValueNotifier<int> membersRefreshNotifier = ValueNotifier<int>(0);
+
+  static void notifyMembersChanged() {
+    membersRefreshNotifier.value++;
+  }
 
   static Future<Gym?> getGym([String? _]) async {
     try {
@@ -80,17 +87,24 @@ class DbService {
 
   static Future<List<Member>> getMembers([String? _]) async =>
       _list('/v1/members', Member.fromJson);
-  static Future<Member> addMember(Member m) async => Member.fromJson(
-    await ApiClient.post('/v1/members', m.toJson()) as Map<String, dynamic>,
-  );
+
+  static Future<Member> addMember(Member m) async {
+    final created = Member.fromJson(
+      await ApiClient.post('/v1/members', m.toJson()) as Map<String, dynamic>,
+    );
+    notifyMembersChanged();
+    return created;
+  }
   static Future<void> updateMember(String id, Map<String, dynamic> updates) async {
     try {
       await ApiClient.patch('/v1/members/$id', updates);
+      notifyMembersChanged();
     } catch (_) {}
   }
   static Future<void> deleteMember(String id) async {
     try {
       await ApiClient.delete('/v1/members/$id');
+      notifyMembersChanged();
     } catch (_) {}
   }
   static Future<List<Lead>> getLeads([String? _]) async =>
