@@ -685,13 +685,17 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(children: [
-                                const Icon(Icons.restaurant_rounded, color: activeCyan, size: 20),
-                                const SizedBox(width: 8),
-                                Text('Active Assigned Diet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt)),
-                              ]),
+                              const Icon(Icons.restaurant_rounded, color: activeCyan, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Active Assigned Diet',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
                               InkWell(
                                 onTap: _openAssignDietDialog,
                                 borderRadius: BorderRadius.circular(8),
@@ -791,23 +795,34 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(children: [
-                                const Icon(Icons.history_rounded, color: AppTheme.accent, size: 20),
-                                const SizedBox(width: 8),
-                                Text('Payment Transaction History', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt)),
-                              ]),
+                              const Icon(Icons.history_rounded, color: AppTheme.accent, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Payment History',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
                               InkWell(
                                 onTap: _openAddPaymentDialog,
                                 borderRadius: BorderRadius.circular(8),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.success.withValues(alpha: 0.12),
+                                    color: AppTheme.success.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Text('+ Record Payment', style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold, fontSize: 11)),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.add_rounded, size: 14, color: AppTheme.success),
+                                      SizedBox(width: 3),
+                                      Text('Record Payment', style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold, fontSize: 11)),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -829,14 +844,29 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 8),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                        Text(p.planName ?? 'Membership Fee', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: txt)),
-                                        const SizedBox(height: 2),
-                                        Text(DateFormat('dd MMM yyyy, hh:mm a').format(p.paidAt), style: TextStyle(color: muted, fontSize: 11)),
-                                      ]),
-                                      Text('+₹${p.amount.toInt()}', style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold, fontSize: 14)),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              p.planName ?? 'Membership Fee',
+                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: txt),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              DateFormat('dd MMM yyyy, hh:mm a').format(p.paidAt),
+                                              style: TextStyle(color: muted, fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        '+₹${p.amount.toInt()}',
+                                        style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold, fontSize: 14),
+                                      ),
                                     ],
                                   ),
                                 );
