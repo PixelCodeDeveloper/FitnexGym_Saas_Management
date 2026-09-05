@@ -17,19 +17,50 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
   final _formKey              = GlobalKey<FormState>();
   final _titleController      = TextEditingController();
   final _caloriesController   = TextEditingController(text: '2200');
-  final _breakfastController  = TextEditingController();
-  final _lunchController      = TextEditingController();
-  final _dinnerController     = TextEditingController();
-  String _selectedType = 'veg';
+  final _proteinController    = TextEditingController(text: '150');
+  final _carbsController      = TextEditingController(text: '200');
+  final _fatsController       = TextEditingController(text: '50');
+  final _waterController      = TextEditingController(text: '3.5');
+  final _notesController      = TextEditingController();
+
+  // 7 Meal Slots
+  final _earlyMorningCtrl     = TextEditingController();
+  final _breakfastCtrl        = TextEditingController();
+  final _midMorningCtrl       = TextEditingController();
+  final _lunchCtrl            = TextEditingController();
+  final _postWorkoutCtrl      = TextEditingController();
+  final _dinnerCtrl           = TextEditingController();
+  final _bedtimeCtrl          = TextEditingController();
+
+  String _selectedCategory = 'veg';
+  String _selectedGoal = 'Fat Loss';
   bool _isSaving = false;
+
+  final List<String> _goals = [
+    'Fat Loss',
+    'Muscle Gain',
+    'Lean Muscle',
+    'Bulking',
+    'Maintenance',
+    'General Fitness',
+  ];
 
   @override
   void dispose() {
     _titleController.dispose();
     _caloriesController.dispose();
-    _breakfastController.dispose();
-    _lunchController.dispose();
-    _dinnerController.dispose();
+    _proteinController.dispose();
+    _carbsController.dispose();
+    _fatsController.dispose();
+    _waterController.dispose();
+    _notesController.dispose();
+    _earlyMorningCtrl.dispose();
+    _breakfastCtrl.dispose();
+    _midMorningCtrl.dispose();
+    _lunchCtrl.dispose();
+    _postWorkoutCtrl.dispose();
+    _dinnerCtrl.dispose();
+    _bedtimeCtrl.dispose();
     super.dispose();
   }
 
@@ -39,34 +70,74 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
     try {
       final gymId = await AuthService.getGymId() ?? 'gym_demo';
       final now   = DateTime.now();
-      final items = <String>[];
-      if (_breakfastController.text.trim().isNotEmpty) items.add('Breakfast: ${_breakfastController.text.trim()}');
-      if (_lunchController.text.trim().isNotEmpty)     items.add('Lunch: ${_lunchController.text.trim()}');
-      if (_dinnerController.text.trim().isNotEmpty)    items.add('Dinner: ${_dinnerController.text.trim()}');
-      if (items.isEmpty) items.add('Balanced High-Protein Meal Plan');
+
+      final mealsMap = <String, String>{};
+      if (_earlyMorningCtrl.text.trim().isNotEmpty) mealsMap['early_morning'] = _earlyMorningCtrl.text.trim();
+      if (_breakfastCtrl.text.trim().isNotEmpty)    mealsMap['breakfast']     = _breakfastCtrl.text.trim();
+      if (_midMorningCtrl.text.trim().isNotEmpty)   mealsMap['mid_morning']   = _midMorningCtrl.text.trim();
+      if (_lunchCtrl.text.trim().isNotEmpty)        mealsMap['lunch']         = _lunchCtrl.text.trim();
+      if (_postWorkoutCtrl.text.trim().isNotEmpty)  mealsMap['post_workout']  = _postWorkoutCtrl.text.trim();
+      if (_dinnerCtrl.text.trim().isNotEmpty)       mealsMap['dinner']        = _dinnerCtrl.text.trim();
+      if (_bedtimeCtrl.text.trim().isNotEmpty)      mealsMap['bedtime']       = _bedtimeCtrl.text.trim();
+
+      if (mealsMap.isEmpty) {
+        mealsMap['lunch'] = 'Balanced High-Protein Nutrition Meal';
+      }
+
+      final items = mealsMap.entries.map((e) => '${_formatMealLabel(e.key)}: ${e.value}').toList();
+
+      final macrosMap = <String, dynamic>{
+        if (_proteinController.text.trim().isNotEmpty) 'protein': '${_proteinController.text.trim()}g',
+        if (_carbsController.text.trim().isNotEmpty)   'carbs': '${_carbsController.text.trim()}g',
+        if (_fatsController.text.trim().isNotEmpty)    'fats': '${_fatsController.text.trim()}g',
+      };
+
+      final waterText = _waterController.text.trim().isNotEmpty
+          ? '${_waterController.text.trim()} Liters/day'
+          : '3.5 - 4.0 Liters/day';
 
       final plan = DietPlan(
         id: '',
         gymId: gymId,
         title: _titleController.text.trim(),
-        type: _selectedType,
+        type: _selectedCategory,
+        category: _selectedCategory,
+        goalTag: _selectedGoal,
         calories: '${_caloriesController.text.trim()} kcal',
+        macros: macrosMap.isNotEmpty ? macrosMap : null,
+        waterIntake: waterText,
+        notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
         items: items,
+        meals: mealsMap,
         createdAt: now,
       );
+
       final created = await DbService.addDietPlan(plan);
       if (mounted) Navigator.pop(context, created);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not save diet plan to database: $e'),
+            content: Text('Could not save diet plan: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  String _formatMealLabel(String key) {
+    switch (key) {
+      case 'early_morning': return 'Early Morning';
+      case 'breakfast': return 'Breakfast';
+      case 'mid_morning': return 'Mid-Morning Snack';
+      case 'lunch': return 'Lunch';
+      case 'post_workout': return 'Post-Workout / Evening';
+      case 'dinner': return 'Dinner';
+      case 'bedtime': return 'Bedtime';
+      default: return 'Meal';
     }
   }
 
@@ -86,7 +157,7 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
       appBar: AppBar(
         backgroundColor: barBg,
         surfaceTintColor: Colors.transparent,
-        title: Text('Create Diet Plan', style: TextStyle(color: txt, fontWeight: FontWeight.w700, fontSize: 17)),
+        title: Text('Create Master Diet Template', style: TextStyle(color: txt, fontWeight: FontWeight.w700, fontSize: 17)),
         iconTheme: IconThemeData(color: txt),
         centerTitle: false,
         elevation: 0,
@@ -114,13 +185,13 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
 
-                      // ── Section 1: Plan Overview ──
+                      // ── Section 1: Overview & Goal ──
                       _sectionHeader(
                         icon: Icons.restaurant_menu_rounded,
                         iconBg: AppTheme.success.withValues(alpha: 0.12),
                         iconColor: AppTheme.success,
-                        title: 'Plan Overview',
-                        subtitle: 'Set the plan name, type and calorie target',
+                        title: 'Plan Overview & Goal',
+                        subtitle: 'Plan title, dietary category & primary goal',
                         txt: txt, txt2: txt2,
                       ),
                       const SizedBox(height: 16),
@@ -132,7 +203,7 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
                         validator: InputValidator.validateName,
                         style: TextStyle(color: txt, fontWeight: FontWeight.w500),
                         decoration: _fieldDec(
-                          hint: 'e.g. Lean Muscle Gain Plan',
+                          hint: 'e.g. 2100 kcal Lean Mass Plan',
                           icon: Icons.edit_note_rounded,
                           iconColor: AppTheme.primary,
                           fillColor: inputFill, border: border, hintColor: muted,
@@ -141,112 +212,200 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
 
                       const SizedBox(height: 16),
 
-                      // ── Diet Type Chips ──
-                      _label('Diet Category', muted),
+                      // ── Dietary Category Selector ──
+                      _label('Dietary Category *', muted),
                       const SizedBox(height: 10),
-                      Row(children: [
-                        Expanded(child: _typeChip(
-                          label: 'Vegetarian 🥗',
-                          value: 'veg',
-                          color: AppTheme.success,
-                          isDark: isDark,
-                          inputFill: inputFill, border: border, txt: txt, txt2: txt2,
-                        )),
-                        const SizedBox(width: 12),
-                        Expanded(child: _typeChip(
-                          label: 'Non-Veg 🍗',
-                          value: 'nonveg',
-                          color: AppTheme.error,
-                          isDark: isDark,
-                          inputFill: inputFill, border: border, txt: txt, txt2: txt2,
-                        )),
-                      ]),
+                      Wrap(
+                        spacing: 8, runSpacing: 8,
+                        children: [
+                          _catChip('🥗 Pure Veg', 'veg', AppTheme.success, isDark, inputFill, border),
+                          _catChip('🥚 Eggetarian', 'egg', const Color(0xFFF59E0B), isDark, inputFill, border),
+                          _catChip('🍗 Non-Veg', 'nonveg', AppTheme.error, isDark, inputFill, border),
+                          _catChip('🌱 Vegan', 'vegan', const Color(0xFF10B981), isDark, inputFill, border),
+                        ],
+                      ),
 
                       const SizedBox(height: 16),
 
-                      _label('Target Calories (kcal) *', muted),
+                      _label('Primary Goal Target', muted),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedGoal,
+                        dropdownColor: barBg,
+                        style: TextStyle(color: txt, fontWeight: FontWeight.w600),
+                        decoration: _fieldDec(
+                          icon: Icons.track_changes_rounded,
+                          iconColor: const Color(0xFF3B82F6),
+                          fillColor: inputFill, border: border, hintColor: muted,
+                        ),
+                        items: _goals.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedGoal = val);
+                        },
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // ── Section 2: Macro & Calorie Targets ──
+                      _sectionHeader(
+                        icon: Icons.local_fire_department_rounded,
+                        iconBg: AppTheme.warning.withValues(alpha: 0.12),
+                        iconColor: AppTheme.warning,
+                        title: 'Calorie & Macro Targets',
+                        subtitle: 'Set daily calories, protein, carbs & fats',
+                        txt: txt, txt2: txt2,
+                      ),
+                      const SizedBox(height: 16),
+
+                      Row(children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            _label('Target Calories *', muted),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _caloriesController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              validator: InputValidator.validateAmount,
+                              style: TextStyle(color: txt, fontWeight: FontWeight.w500),
+                              decoration: _fieldDec(
+                                hint: '2200', suffix: 'kcal',
+                                icon: Icons.local_fire_department_rounded,
+                                iconColor: AppTheme.warning,
+                                fillColor: inputFill, border: border, hintColor: muted,
+                              ),
+                            ),
+                          ]),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            _label('Protein (g)', muted),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _proteinController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              style: TextStyle(color: txt, fontWeight: FontWeight.w500),
+                              decoration: _fieldDec(
+                                hint: '150', suffix: 'g',
+                                icon: Icons.fitness_center_rounded,
+                                iconColor: AppTheme.primary,
+                                fillColor: inputFill, border: border, hintColor: muted,
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ]),
+
+                      const SizedBox(height: 12),
+
+                      Row(children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            _label('Carbohydrates (g)', muted),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _carbsController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              style: TextStyle(color: txt, fontWeight: FontWeight.w500),
+                              decoration: _fieldDec(
+                                hint: '200', suffix: 'g',
+                                icon: Icons.grain_rounded,
+                                iconColor: const Color(0xFF8B5CF6),
+                                fillColor: inputFill, border: border, hintColor: muted,
+                              ),
+                            ),
+                          ]),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            _label('Fats (g)', muted),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _fatsController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              style: TextStyle(color: txt, fontWeight: FontWeight.w500),
+                              decoration: _fieldDec(
+                                hint: '50', suffix: 'g',
+                                icon: Icons.opacity_rounded,
+                                iconColor: const Color(0xFFEC4899),
+                                fillColor: inputFill, border: border, hintColor: muted,
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ]),
+
+                      const SizedBox(height: 12),
+
+                      _label('Daily Water Hydration Target', muted),
                       const SizedBox(height: 6),
                       TextFormField(
-                        controller: _caloriesController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        validator: InputValidator.validateAmount,
+                        controller: _waterController,
                         style: TextStyle(color: txt, fontWeight: FontWeight.w500),
                         decoration: _fieldDec(
-                          hint: 'e.g. 2200',
-                          suffix: 'kcal',
-                          icon: Icons.local_fire_department_rounded,
-                          iconColor: AppTheme.warning,
+                          hint: '3.5', suffix: 'L/day',
+                          icon: Icons.water_drop_rounded,
+                          iconColor: const Color(0xFF3B82F6),
                           fillColor: inputFill, border: border, hintColor: muted,
                         ),
                       ),
 
                       const SizedBox(height: 28),
 
-                      // ── Section 2: Meal Schedule ──
+                      // ── Section 3: 7-Meal Timetable Schedule ──
                       _sectionHeader(
-                        icon: Icons.flatware_rounded,
-                        iconBg: AppTheme.accent.withValues(alpha: 0.12),
-                        iconColor: AppTheme.accent,
-                        title: 'Meal Schedule & Menu',
-                        subtitle: 'Fill breakfast, lunch, dinner menus',
+                        icon: Icons.schedule_rounded,
+                        iconBg: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                        iconColor: const Color(0xFF3B82F6),
+                        title: '7-Meal Flexible Schedule',
+                        subtitle: 'Fill optional meal slots (empty slots auto-omitted)',
                         txt: txt, txt2: txt2,
                       ),
                       const SizedBox(height: 16),
 
-                      _label('Breakfast Menu', muted),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _breakfastController,
-                        maxLines: 2,
-                        style: TextStyle(color: txt),
-                        decoration: _fieldDec(
-                          hint: 'e.g. Oats, Peanut Butter, 4 Egg Whites, Almonds',
-                          icon: Icons.free_breakfast_rounded,
-                          iconColor: AppTheme.warning,
-                          fillColor: inputFill, border: border, hintColor: muted,
-                        ),
+                      _mealField('🌅 1. Early Morning / Pre-Workout', _earlyMorningCtrl, 'Warm lemon water, Black Coffee, 4 Almonds', inputFill, border, muted, txt),
+                      const SizedBox(height: 12),
+                      _mealField('🥣 2. Breakfast Menu', _breakfastCtrl, 'Oats with Whey Protein, Peanut Butter, Banana', inputFill, border, muted, txt),
+                      const SizedBox(height: 12),
+                      _mealField('🍏 3. Mid-Morning Snack', _midMorningCtrl, 'Green Tea, Roasted Chana / Boiled Eggs', inputFill, border, muted, txt),
+                      const SizedBox(height: 12),
+                      _mealField('🥗 4. Lunch Menu', _lunchCtrl, '200g Paneer/Grilled Chicken, Brown Rice, Salad', inputFill, border, muted, txt),
+                      const SizedBox(height: 12),
+                      _mealField('⚡ 5. Post-Workout / Evening Snack', _postWorkoutCtrl, '1 Scoop Whey Protein, Sprouts Salad', inputFill, border, muted, txt),
+                      const SizedBox(height: 12),
+                      _mealField('🍲 6. Dinner Menu', _dinnerCtrl, 'Tofu/Fish Curry, Mixed Veggies, Clear Soup', inputFill, border, muted, txt),
+                      const SizedBox(height: 12),
+                      _mealField('🌙 7. Bedtime Recovery', _bedtimeCtrl, 'Warm Turmeric Milk, Casein Protein', inputFill, border, muted, txt),
+
+                      const SizedBox(height: 28),
+
+                      // ── Section 4: Trainer Guidelines ──
+                      _sectionHeader(
+                        icon: Icons.assignment_turned_in_rounded,
+                        iconBg: const Color(0xFF10B981).withValues(alpha: 0.12),
+                        iconColor: const Color(0xFF10B981),
+                        title: 'Trainer Notes & Guidelines',
+                        subtitle: 'Special instructions, allergy warnings & rules',
+                        txt: txt, txt2: txt2,
                       ),
-
-                      const SizedBox(height: 16),
-
-                      _label('Lunch Menu', muted),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _lunchController,
-                        maxLines: 2,
-                        style: TextStyle(color: txt),
-                        decoration: _fieldDec(
-                          hint: 'e.g. 200g Grilled Chicken/Paneer, Brown Rice, Salad',
-                          icon: Icons.lunch_dining_rounded,
-                          iconColor: AppTheme.accent,
-                          fillColor: inputFill, border: border, hintColor: muted,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      _label('Dinner Menu', muted),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _dinnerController,
-                        maxLines: 2,
-                        style: TextStyle(color: txt),
-                        decoration: _fieldDec(
-                          hint: 'e.g. Baked Fish/Tofu, Mixed Veggies, Clear Soup',
-                          icon: Icons.dinner_dining_rounded,
-                          iconColor: const Color(0xFF8B5CF6),
-                          fillColor: inputFill, border: border, hintColor: muted,
-                        ),
-                      ),
-
                       const SizedBox(height: 12),
 
-                      Row(children: [
-                        Icon(Icons.info_outline_rounded, size: 14, color: muted),
-                        const SizedBox(width: 6),
-                        Text('Plan will be available to assign to members', style: TextStyle(color: muted, fontSize: 12)),
-                      ]),
+                      TextFormField(
+                        controller: _notesController,
+                        maxLines: 3,
+                        style: TextStyle(color: txt),
+                        decoration: _fieldDec(
+                          hint: 'e.g. Avoid refined sugar & deep-fried foods. Drink 500ml water 30 mins before lunch.',
+                          icon: Icons.speaker_notes_rounded,
+                          iconColor: const Color(0xFF10B981),
+                          fillColor: inputFill, border: border, hintColor: muted,
+                        ),
+                      ),
 
                       const SizedBox(height: 20),
                     ],
@@ -255,7 +414,7 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
               ),
             ),
 
-            // ── Sticky Bottom Button ──
+            // ── Sticky Bottom Save Button ──
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               decoration: BoxDecoration(
@@ -279,7 +438,7 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
                           children: [
                             Icon(Icons.save_rounded, color: Colors.white, size: 20),
                             SizedBox(width: 8),
-                            Text('Save Diet Plan Template', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                            Text('Save Master Diet Template', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
                             SizedBox(width: 8),
                             Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
                           ],
@@ -293,33 +452,52 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
     );
   }
 
-  // Type chip (Veg / Non-Veg)
-  Widget _typeChip({
-    required String label, required String value, required Color color,
-    required bool isDark, required Color inputFill, required Color border,
-    required Color txt, required Color txt2,
-  }) {
-    final selected = _selectedType == value;
+  Widget _catChip(String label, String value, Color color, bool isDark, Color inputFill, Color border) {
+    final selected = _selectedCategory == value;
     return GestureDetector(
-      onTap: () => setState(() => _selectedType = value),
+      onTap: () => setState(() => _selectedCategory = value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: isDark ? 0.2 : 0.1) : inputFill,
-          borderRadius: BorderRadius.circular(14),
+          color: selected ? color.withValues(alpha: isDark ? 0.25 : 0.12) : inputFill,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: selected ? color : border, width: selected ? 2 : 1),
         ),
-        alignment: Alignment.center,
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? color : txt2,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            fontSize: 14,
+            color: selected ? color : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+            fontSize: 13,
           ),
         ),
       ),
+    );
+  }
+
+  Widget _mealField(String label, TextEditingController ctrl, String hint, Color fillColor, Color border, Color muted, Color txt) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label(label, muted),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: ctrl,
+          maxLines: 2,
+          style: TextStyle(color: txt, fontSize: 13),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: muted, fontSize: 12),
+            filled: true,
+            fillColor: fillColor,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primary, width: 2)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -367,8 +545,6 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: border)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: border)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.primary, width: 2)),
-      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.error)),
-      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppTheme.error, width: 2)),
     );
   }
 }

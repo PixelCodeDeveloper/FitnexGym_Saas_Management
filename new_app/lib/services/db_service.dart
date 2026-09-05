@@ -113,6 +113,21 @@ class DbService {
       await ApiClient.delete('/v1/diet-plans/$id');
     } catch (_) {}
   }
+  static Future<MemberDietPlan?> assignDietPlanToMember(Map<String, dynamic> payload) async {
+    final res = await ApiClient.post('/v1/diet-plans/assign', payload);
+    if (res is Map<String, dynamic>) return MemberDietPlan.fromJson(res);
+    return null;
+  }
+  static Future<MemberDietPlan?> getMemberDietPlan(String memberId) async {
+    try {
+      final res = await ApiClient.get('/v1/members/$memberId/diet-plan');
+      if (res is Map<String, dynamic>) return MemberDietPlan.fromJson(res);
+    } catch (_) {}
+    return null;
+  }
+  static Future<List<MemberDietPlan>> getDietPlansDueForReview() async {
+    return _list('/v1/diet-plans/due-for-review', MemberDietPlan.fromJson);
+  }
   static Future<List<SubscriptionPlan>> getPlans([String? _]) async =>
       _list('/v1/plans', SubscriptionPlan.fromJson);
   static Future<SubscriptionPlan> addPlan(SubscriptionPlan x) async =>

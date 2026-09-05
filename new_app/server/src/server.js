@@ -119,7 +119,56 @@ const updateMemberSchema = z.object({
   amount_paid: z.coerce.number().min(0).max(10000000).optional(),
 });
 const leadSchema = z.object({ name: z.string().trim().min(2).max(120), phone: z.string().trim().min(6).max(30), note: z.string().trim().max(2000).nullable().optional(), status: z.enum(['hot', 'warm', 'cold']), follow_up_date: parseDate });
-const dietSchema = z.object({ title: z.string().trim().min(2).max(160), type: z.enum(['veg', 'nonveg']), calories: z.string().trim().max(80), items: z.array(z.string().trim().min(1).max(200)).max(100) });
+const dietSchema = z.object({
+  title: z.string().trim().min(2).max(160),
+  type: z.enum(['veg', 'nonveg', 'egg', 'vegan']).optional().default('veg'),
+  category: z.string().trim().max(40).optional().default('veg'),
+  goal_tag: z.string().trim().max(80).nullable().optional(),
+  calories: z.string().trim().max(80),
+  macros: z.object({
+    protein: z.union([z.string(), z.number()]).optional(),
+    carbs: z.union([z.string(), z.number()]).optional(),
+    fats: z.union([z.string(), z.number()]).optional(),
+  }).nullable().optional(),
+  water_intake: z.string().trim().max(80).nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+  items: z.array(z.string().trim().min(1).max(200)).max(100).nullable().optional(),
+  meals: z.object({
+    early_morning: z.string().trim().max(500).nullable().optional(),
+    breakfast: z.string().trim().max(500).nullable().optional(),
+    mid_morning: z.string().trim().max(500).nullable().optional(),
+    lunch: z.string().trim().max(500).nullable().optional(),
+    post_workout: z.string().trim().max(500).nullable().optional(),
+    dinner: z.string().trim().max(500).nullable().optional(),
+    bedtime: z.string().trim().max(500).nullable().optional(),
+  }).nullable().optional(),
+});
+const assignDietSchema = z.object({
+  member_id: z.string().uuid(),
+  template_id: z.preprocess((val) => (val === '' || val === undefined ? null : val), z.string().uuid().nullable().optional()),
+  custom_title: z.string().trim().min(2).max(160),
+  category: z.string().trim().max(40).optional().default('veg'),
+  goal_tag: z.string().trim().max(80).nullable().optional(),
+  calories: z.string().trim().max(80),
+  macros: z.object({
+    protein: z.union([z.string(), z.number()]).optional(),
+    carbs: z.union([z.string(), z.number()]).optional(),
+    fats: z.union([z.string(), z.number()]).optional(),
+  }).nullable().optional(),
+  water_intake: z.string().trim().max(80).nullable().optional(),
+  meals: z.object({
+    early_morning: z.string().trim().max(500).nullable().optional(),
+    breakfast: z.string().trim().max(500).nullable().optional(),
+    mid_morning: z.string().trim().max(500).nullable().optional(),
+    lunch: z.string().trim().max(500).nullable().optional(),
+    post_workout: z.string().trim().max(500).nullable().optional(),
+    dinner: z.string().trim().max(500).nullable().optional(),
+    bedtime: z.string().trim().max(500).nullable().optional(),
+  }).nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+  start_date: parseDate.optional(),
+  review_date: parseDate.optional(),
+});
 const planSchema = z.object({ name: z.string().trim().min(2).max(120), duration_days: z.coerce.number().int().min(1).max(3650), price: z.coerce.number().min(0).max(10000000), description: z.string().trim().max(1000).nullable().optional() });
 const paymentSchema = z.object({ member_id: z.string().uuid(), member_name: z.string().trim().max(120).nullable().optional(), amount: z.coerce.number().positive().max(10000000), plan_name: z.string().trim().max(120).nullable().optional(), paid_at: parseDate });
 const uuid = z.string().uuid();
@@ -718,6 +767,61 @@ app.post('/v1/diet-plans/send-email', auth, gymContext, requireGym, asyncRoute(a
   }
 
   res.json({ success: true, message: `Diet plan PDF sent to ${member_email}` });
+}));
+
+app.post('/v1/diet-plans/assign', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const body = parse(assignDietSchema, req.body);
+  const startDate = body.start_date || new Date();
+  const reviewDate = body.review_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  await db.query(`UPDATE member_diet_plans SET status = 'archived' WHERE gym_id = $1 AND member_id = $2 AND status = 'active'`, [req.gym.id, body.member_id]);
+
+  const { rows } = await db.query(
+    `INSERT INTO member_diet_plans (gym_id, member_id, template_id, custom_title, category, goal_tag, calories, macros, water_intake, meals, notes, start_date, review_date, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10::jsonb, $11, $12, $13, 'active')
+     RETURNING *`,
+    [
+      req.gym.id,
+      body.member_id,
+      body.template_id || null,
+      body.custom_title,
+      body.category || 'veg',
+      body.goal_tag || null,
+      body.calories,
+      body.macros ? JSON.stringify(body.macros) : null,
+      body.water_intake || null,
+      JSON.stringify(body.meals || {}),
+      body.notes || null,
+      startDate,
+      reviewDate,
+    ]
+  );
+  await audit(req, 'member_diet_plans.assign', 'member_diet_plans', rows[0].id);
+  res.status(201).json(rows[0]);
+}));
+
+app.get('/v1/members/:id/diet-plan', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT mdp.*, m.name as member_name, m.email as member_email
+     FROM member_diet_plans mdp
+     JOIN members m ON m.id = mdp.member_id
+     WHERE mdp.gym_id = $1 AND mdp.member_id = $2 AND mdp.status = 'active'
+     ORDER BY mdp.created_at DESC LIMIT 1`,
+    [req.gym.id, parse(uuid, req.params.id)]
+  );
+  res.json(rows[0] || null);
+}));
+
+app.get('/v1/diet-plans/due-for-review', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT mdp.*, m.name as member_name, m.phone as member_phone, m.email as member_email
+     FROM member_diet_plans mdp
+     JOIN members m ON m.id = mdp.member_id
+     WHERE mdp.gym_id = $1 AND mdp.status = 'active' AND mdp.review_date <= (now() + interval '7 days')
+     ORDER BY mdp.review_date ASC`,
+    [req.gym.id]
+  );
+  res.json(rows);
 }));
 app.patch('/v1/members/:id', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
   const body = parse(memberSchema.partial(), req.body); if (!Object.keys(body).length) return res.status(400).json({ error: 'No changes supplied.' });

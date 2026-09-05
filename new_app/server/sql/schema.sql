@@ -41,8 +41,21 @@ CREATE TABLE leads (
 );
 CREATE TABLE diet_plans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), gym_id uuid NOT NULL REFERENCES gyms(id) ON DELETE CASCADE,
-  title varchar(160) NOT NULL, type varchar(10) NOT NULL CHECK (type IN ('veg','nonveg')),
-  calories varchar(80) NOT NULL, items jsonb NOT NULL CHECK (jsonb_typeof(items) = 'array'), created_at timestamptz NOT NULL DEFAULT now()
+  title varchar(160) NOT NULL, type varchar(10) NOT NULL CHECK (type IN ('veg','nonveg','egg','vegan')),
+  category varchar(20) NOT NULL DEFAULT 'veg', goal_tag varchar(50),
+  calories varchar(80) NOT NULL, macros jsonb, water_intake varchar(50), notes text,
+  items jsonb CHECK (items IS NULL OR jsonb_typeof(items) = 'array'), meals jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE member_diet_plans (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), gym_id uuid NOT NULL REFERENCES gyms(id) ON DELETE CASCADE,
+  member_id uuid NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  template_id uuid REFERENCES diet_plans(id) ON DELETE SET NULL,
+  custom_title varchar(160) NOT NULL, category varchar(20) NOT NULL DEFAULT 'veg',
+  goal_tag varchar(50), calories varchar(80), macros jsonb, water_intake varchar(50),
+  meals jsonb NOT NULL, notes text, start_date timestamptz NOT NULL DEFAULT now(),
+  review_date timestamptz NOT NULL, status varchar(20) NOT NULL DEFAULT 'active',
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE payments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), gym_id uuid NOT NULL REFERENCES gyms(id) ON DELETE CASCADE,
