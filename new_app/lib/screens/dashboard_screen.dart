@@ -31,6 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Member> _expiringMembers = [];
   List<Lead> _hotLeads = [];
   List<Payment> _recentPayments = [];
+  List<_PlanDistributionItem> _planDistribution = [];
 
   Gym? _gym;
 
@@ -57,6 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final gym      = await DbService.getGym();
       final members  = await DbService.getMembers();
       final leads    = await DbService.getLeads();
+      final plans    = await DbService.getPlans();
       final rev      = await DbService.getMonthlyRevenue();
       final payments = await DbService.getPayments();
 
@@ -65,6 +67,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       final membersTotal = members.fold(0.0, (sum, m) => sum + m.amountPaid);
       final double finalRev = rev > membersTotal ? rev : membersTotal;
+
+      final planNameMap = <String, String>{};
+      for (var p in plans) {
+        planNameMap[p.id] = p.name;
+      }
+
+      final planCounts = <String, int>{};
+      for (var m in members) {
+        final name = (m.planId != null && planNameMap.containsKey(m.planId))
+            ? planNameMap[m.planId]!
+            : 'Standard Plan';
+        planCounts[name] = (planCounts[name] ?? 0) + 1;
+      }
+
+      final colors = [
+        const Color(0xFF00E5C0),
+        const Color(0xFF3B82F6),
+        const Color(0xFF8B5CF6),
+        const Color(0xFFF59E0B),
+        const Color(0xFF10B981),
+      ];
+
+      final distList = <_PlanDistributionItem>[];
+      int cIdx = 0;
+      planCounts.forEach((name, count) {
+        final pct = members.isEmpty ? 0.0 : (count / members.length);
+        distList.add(_PlanDistributionItem(
+          name: name,
+          count: count,
+          percentage: pct,
+          color: colors[cIdx % colors.length],
+        ));
+        cIdx++;
+      });
 
       setState(() {
         _gym             = gym;
@@ -75,6 +111,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _hotLeads        = hotList.take(3).toList();
         _monthlyRevenue  = finalRev;
         _recentPayments  = payments.take(5).toList();
+        _planDistribution= distList;
         _isLoading       = false;
       });
     } catch (_) {
@@ -429,6 +466,115 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 24),
               ],
 
+              // ── Plan Popularity & Distribution Breakdown ──
+              if (_planDistribution.isNotEmpty) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.pie_chart_rounded, color: cyanFg, size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Plan Popularity & Distribution',
+                          style: TextStyle(color: txtPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => widget.onNavigateTab?.call(4),
+                      child: Row(
+                        children: [
+                          Text('Plans ', style: TextStyle(color: cyanFg, fontSize: 12, fontWeight: FontWeight.w600)),
+                          Icon(Icons.arrow_forward_rounded, color: cyanFg, size: 14),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: dividerColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$_totalMembers total member${_totalMembers == 1 ? '' : 's'} across ${_planDistribution.length} active plan${_planDistribution.length == 1 ? '' : 's'}',
+                        style: TextStyle(color: txtSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 14),
+                      // Multi-segmented proportion bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          height: 10,
+                          child: Row(
+                            children: _planDistribution.map((item) {
+                              final flexVal = (item.percentage * 100).round().clamp(1, 100);
+                              return Expanded(
+                                flex: flexVal,
+                                child: Container(color: item.color),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Plan detail rows
+                      Column(
+                        children: _planDistribution.map((item) {
+                          final darkItemColor = AppTheme.darkColor(item.color, isDark);
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: item.color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    item.name,
+                                    style: TextStyle(color: txtPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: darkItemColor.withValues(alpha: isDark ? 0.15 : 0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${item.count} ${item.count == 1 ? 'member' : 'members'}',
+                                    style: TextStyle(color: darkItemColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  '${(item.percentage * 100).toStringAsFixed(0)}%',
+                                  style: TextStyle(color: txtSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 28),
+              ],
+
               // ── Recent Transactions Section ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -574,4 +720,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (v >= 1000)   return '${(v / 1000).toStringAsFixed(1)}K';
     return v.toStringAsFixed(0);
   }
+}
+
+class _PlanDistributionItem {
+  final String name;
+  final int count;
+  final double percentage;
+  final Color color;
+
+  _PlanDistributionItem({
+    required this.name,
+    required this.count,
+    required this.percentage,
+    required this.color,
+  });
 }
