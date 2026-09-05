@@ -814,6 +814,14 @@ class _MembersScreenState extends State<MembersScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
+                      Icon(Icons.how_to_reg_rounded, size: 11, color: activeCyan),
+                      const SizedBox(width: 4),
+                      Text('Joined: ${DateFormat('dd MMM yyyy, hh:mm a').format(m.createdAt)}', style: TextStyle(color: txt2, fontSize: 11)),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
                       Icon(Icons.calendar_today_rounded, size: 11, color: muted),
                       const SizedBox(width: 4),
                       Text('Exp: $expStr', style: TextStyle(color: txt2, fontSize: 11)),

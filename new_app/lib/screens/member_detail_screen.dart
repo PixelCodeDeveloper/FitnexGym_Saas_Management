@@ -559,6 +559,20 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                                         ],
                                       ),
                                     ],
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.how_to_reg_rounded, size: 14, color: activeCyan),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            'Joined App: ${DateFormat('dd MMM yyyy, hh:mm a').format(_member.createdAt)}',
+                                            style: const TextStyle(color: activeCyan, fontSize: 12, fontWeight: FontWeight.w600),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ),
@@ -635,14 +649,19 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('JOINED ON', style: TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 2),
+                                Text(DateFormat('dd MMM yyyy').format(_member.createdAt), style: TextStyle(color: txt, fontWeight: FontWeight.w600, fontSize: 12)),
+                              ]),
+                              Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
                                 Text('START DATE', style: TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 2),
-                                Text(DateFormat('dd MMM yyyy').format(_member.subscriptionStart), style: TextStyle(color: txt, fontWeight: FontWeight.w600, fontSize: 13)),
+                                Text(DateFormat('dd MMM yyyy').format(_member.subscriptionStart), style: TextStyle(color: txt, fontWeight: FontWeight.w600, fontSize: 12)),
                               ]),
                               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                                 Text('EXPIRY DATE', style: TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 2),
-                                Text(DateFormat('dd MMM yyyy').format(_member.subscriptionEnd), style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text(DateFormat('dd MMM yyyy').format(_member.subscriptionEnd), style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
                               ]),
                             ],
                           ),
