@@ -587,16 +587,16 @@ class _MembersScreenState extends State<MembersScreen> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                           decoration: BoxDecoration(
-                            color: sel ? activeCyan : inputFill,
+                            color: sel ? (isDark ? activeCyan : AppTheme.darkColor(activeCyan, isDark)) : inputFill,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: sel ? activeCyan : border,
+                              color: sel ? (isDark ? activeCyan : AppTheme.darkColor(activeCyan, isDark)) : border,
                             ),
                           ),
                           child: Text(
                             f,
                             style: TextStyle(
-                              color: sel ? Colors.black : txt2,
+                              color: sel ? Colors.white : txt2,
                               fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
                               fontSize: 13,
                             ),
@@ -678,13 +678,13 @@ class _MembersScreenState extends State<MembersScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: activeCyan.withValues(alpha: 0.15),
+                color: (isDark ? activeCyan : AppTheme.darkColor(activeCyan, isDark)).withValues(alpha: isDark ? 0.15 : 0.12),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
                   initials.isEmpty ? 'M' : initials,
-                  style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(color: isDark ? activeCyan : AppTheme.darkColor(activeCyan, isDark), fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
             ),
@@ -708,15 +708,15 @@ class _MembersScreenState extends State<MembersScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.15),
+                          color: statusColor.withValues(alpha: isDark ? 0.15 : 0.16),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(statusIcon, size: 10, color: statusColor),
+                            Icon(statusIcon, size: 10, color: AppTheme.darkColor(statusColor, isDark)),
                             const SizedBox(width: 3),
-                            Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                            Text(statusLabel, style: TextStyle(color: AppTheme.darkColor(statusColor, isDark), fontSize: 10, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -729,13 +729,13 @@ class _MembersScreenState extends State<MembersScreen> {
                       const SizedBox(width: 8),
                       Text('•', style: TextStyle(color: muted, fontSize: 12)),
                       const SizedBox(width: 8),
-                      Text('₹${m.amountPaid.toInt()}', style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text('₹${m.amountPaid.toInt()}', style: TextStyle(color: AppTheme.darkColor(activeCyan, isDark), fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.how_to_reg_rounded, size: 11, color: activeCyan),
+                      Icon(Icons.how_to_reg_rounded, size: 11, color: AppTheme.darkColor(activeCyan, isDark)),
                       const SizedBox(width: 4),
                       Text('Joined: ${DateFormat('dd MMM yyyy, hh:mm a').format(m.createdAt)}', style: TextStyle(color: txt2, fontSize: 11)),
                     ],

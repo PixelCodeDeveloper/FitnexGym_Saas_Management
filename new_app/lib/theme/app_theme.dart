@@ -48,6 +48,19 @@ class AppTheme {
   static const Color lightTextSecondary = Color(0xFF334155);
   static const Color lightTextMuted   = Color(0xFF475569);
 
+  // ── High-contrast color helper for Light Mode ──
+  static Color darkColor(Color c, bool isDark) {
+    if (isDark) return c;
+    final v = c.value;
+    if (v == 0xFF00C4A0 || v == 0xFF00E5C0) return const Color(0xFF0F766E); // Deep Teal
+    if (v == 0xFF22C55E || v == 0xFF10B981) return const Color(0xFF15803D); // Deep Green
+    if (v == 0xFFF59E0B || v == 0xFFFF6B2C) return const Color(0xFFB45309); // Deep Amber/Orange
+    if (v == 0xFF3B82F6 || v == 0xFF0EA5E9) return const Color(0xFF1D4ED8); // Deep Blue
+    if (v == 0xFF8B5CF6 || v == 0xFFEC4899) return const Color(0xFF6D28D9); // Deep Purple
+    if (v == 0xFFEF4444)                    return const Color(0xFFB91C1C); // Deep Red
+    return c;
+  }
+
   // ── Gradients ──
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [Color(0xFF00C4A0), Color(0xFF0EA5E9)],

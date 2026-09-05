@@ -474,10 +474,10 @@ class _DietScreenState extends State<DietScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: activeCyan.withValues(alpha: 0.12),
+                          color: activeCyan.withValues(alpha: isDark ? 0.12 : 0.18),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text('${_plans.length} Templates', style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: Text('${_plans.length} Templates', style: TextStyle(color: AppTheme.darkColor(activeCyan, isDark), fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     ],
                   ),
@@ -590,15 +590,16 @@ class _DietScreenState extends State<DietScreen> {
 
   Widget _tabChip(String label, String value, int count, Color accent, bool isDark) {
     final selected = _selectedTab == value;
+    final activeFg = AppTheme.darkColor(accent, isDark);
     return GestureDetector(
       onTap: () => setState(() => _selectedTab = value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? accent.withValues(alpha: isDark ? 0.25 : 0.15) : (isDark ? const Color(0xFF0F172A) : Colors.white),
+          color: selected ? accent.withValues(alpha: isDark ? 0.25 : 0.18) : (isDark ? const Color(0xFF0F172A) : Colors.white),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? accent : (isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0)), width: selected ? 1.5 : 1),
+          border: Border.all(color: selected ? activeFg : (isDark ? const Color(0xFF162234) : const Color(0xFFCBD5E1)), width: selected ? 1.5 : 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -606,8 +607,8 @@ class _DietScreenState extends State<DietScreen> {
             Text(
               label,
               style: TextStyle(
-                color: selected ? accent : (isDark ? Colors.white70 : Colors.black87),
-                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                color: selected ? activeFg : (isDark ? Colors.white70 : const Color(0xFF1E293B)),
+                fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                 fontSize: 12,
               ),
             ),
@@ -615,13 +616,13 @@ class _DietScreenState extends State<DietScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: selected ? accent : Colors.grey.withValues(alpha: 0.2),
+                color: selected ? activeFg : (isDark ? Colors.grey.withValues(alpha: 0.2) : const Color(0xFFE2E8F0)),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 '$count',
                 style: TextStyle(
-                  color: selected ? (isDark ? Colors.black : Colors.white) : (isDark ? Colors.white70 : Colors.black54),
+                  color: selected ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF1E293B)),
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
@@ -688,30 +689,30 @@ class _DietScreenState extends State<DietScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.12),
+                            color: accent.withValues(alpha: isDark ? 0.12 : 0.16),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(plan.CategoryBadge, style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold)),
+                          child: Text(plan.CategoryBadge, style: TextStyle(color: AppTheme.darkColor(accent, isDark), fontSize: 11, fontWeight: FontWeight.bold)),
                         ),
                         if (plan.goalTag != null && plan.goalTag!.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                              color: const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.12 : 0.16),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text('🎯 ${plan.goalTag}', style: const TextStyle(color: Color(0xFF3B82F6), fontSize: 11, fontWeight: FontWeight.bold)),
+                            child: Text('🎯 ${plan.goalTag}', style: TextStyle(color: AppTheme.darkColor(const Color(0xFF3B82F6), isDark), fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                            color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.12 : 0.16),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const Icon(Icons.local_fire_department_rounded, size: 12, color: Color(0xFFF59E0B)),
+                            Icon(Icons.local_fire_department_rounded, size: 12, color: AppTheme.darkColor(const Color(0xFFF59E0B), isDark)),
                             const SizedBox(width: 4),
-                            Text(plan.calories, style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 11, fontWeight: FontWeight.bold)),
+                            Text(plan.calories, style: TextStyle(color: AppTheme.darkColor(const Color(0xFFF59E0B), isDark), fontSize: 11, fontWeight: FontWeight.bold)),
                           ]),
                         ),
                       ],
@@ -765,10 +766,10 @@ class _DietScreenState extends State<DietScreen> {
                     Expanded(
                       child: RichText(
                         text: TextSpan(
-                          style: TextStyle(fontSize: 13, color: txt2, height: 1.4),
+                          style: TextStyle(fontSize: 13, color: txt, height: 1.4),
                           children: [
-                            TextSpan(text: '${_formatMealKey(e.key)}: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            TextSpan(text: e.value),
+                            TextSpan(text: '${_formatMealKey(e.key)}: ', style: TextStyle(fontWeight: FontWeight.bold, color: txt)),
+                            TextSpan(text: e.value, style: TextStyle(color: txt, fontWeight: isDark ? FontWeight.normal : FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -835,31 +836,36 @@ class _DietScreenState extends State<DietScreen> {
   }
 
   Widget _macroItem(String label, String value, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fg = AppTheme.darkColor(color, isDark);
     return Column(
       children: [
-        Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
       ],
     );
   }
 
   Widget _actionBtn({required String label, required IconData icon, required Color color, required VoidCallback onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fgColor = AppTheme.darkColor(color, isDark);
+    final bgColor = isDark ? color.withValues(alpha: 0.12) : color.withValues(alpha: 0.18);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
+          color: bgColor,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: color),
+            Icon(icon, size: 14, color: fgColor),
             const SizedBox(width: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(label, style: TextStyle(color: fgColor, fontSize: 11, fontWeight: FontWeight.w700)),
           ],
         ),
       ),
