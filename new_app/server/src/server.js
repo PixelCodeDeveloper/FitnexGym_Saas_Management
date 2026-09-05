@@ -504,7 +504,8 @@ function tenantRoutes(path, schema, table, order = 'created_at DESC') {
   app.post(`/v1/${path}`, auth, gymContext, requireGym, asyncRoute(async (req, res) => {
     const body = parse(schema, req.body); const keys = Object.keys(body);
     const values = keys.map((k) => (typeof body[k] === 'object' && body[k] !== null ? JSON.stringify(body[k]) : body[k]));
-    const columns = ['gym_id', ...keys].join(', '); const placeholders = ['$1', ...keys.map((_, i) => `$${i + 2}`)].join(', ');
+    const columns = ['gym_id', ...keys].join(', ');
+    const placeholders = ['$1', ...keys.map((k, i) => (typeof body[k] === 'object' && body[k] !== null ? `$${i + 2}::jsonb` : `$${i + 2}`))].join(', ');
     const { rows } = await db.query(`INSERT INTO ${table} (${columns}) VALUES (${placeholders}) RETURNING *`, [req.gym.id, ...values]);
     await audit(req, `${table}.create`, table, rows[0].id); res.status(201).json(rows[0]);
   }));
