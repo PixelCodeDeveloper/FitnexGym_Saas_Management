@@ -1035,13 +1035,11 @@ app.post('/v1/notifications/send-message', auth, asyncRoute(async (req, res) => 
   res.json({ success: true, sid: `SM_demo_${Date.now()}`, status: 'queued' });
 }));
 app.get('/v1/reports/monthly-revenue', auth, gymContext, requireGym, asyncRoute(async (req, res) => {
-  const pRes = await db.query("SELECT COALESCE(SUM(amount), 0)::float8 AS total FROM payments WHERE gym_id = $1 AND paid_at >= date_trunc('month', now())", [req.gym.id]);
-  let total = Number(pRes.rows[0]?.total || 0);
-  if (total === 0) {
-    const mRes = await db.query("SELECT COALESCE(SUM(amount_paid), 0)::float8 AS total FROM members WHERE gym_id = $1", [req.gym.id]);
-    total = Number(mRes.rows[0]?.total || 0);
-  }
-  res.json({ total });
+  const pRes = await db.query("SELECT COALESCE(SUM(amount), 0)::float8 AS total FROM payments WHERE gym_id = $1", [req.gym.id]);
+  const mRes = await db.query("SELECT COALESCE(SUM(amount_paid), 0)::float8 AS total FROM members WHERE gym_id = $1", [req.gym.id]);
+  const pTotal = Number(pRes.rows[0]?.total || 0);
+  const mTotal = Number(mRes.rows[0]?.total || 0);
+  res.json({ total: Math.max(pTotal, mTotal) });
 }));
 app.use((err, req, res, _next) => {
   req.log?.error({ err: err.message }, 'request failed');

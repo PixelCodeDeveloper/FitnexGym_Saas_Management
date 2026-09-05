@@ -63,10 +63,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final expList = members.where((m) => m.status == MemberStatus.expiringSoon || m.isExpiringSoon || m.isExpired).toList();
       final hotList = leads.where((l) => l.status == LeadStatus.hot || l.status == LeadStatus.warm).toList();
 
-      double finalRev = rev;
-      if (finalRev <= 0 && members.isNotEmpty) {
-        finalRev = members.fold(0.0, (sum, m) => sum + m.amountPaid);
-      }
+      final membersTotal = members.fold(0.0, (sum, m) => sum + m.amountPaid);
+      final double finalRev = rev > membersTotal ? rev : membersTotal;
 
       setState(() {
         _gym             = gym;
