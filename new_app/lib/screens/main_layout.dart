@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:intl/intl.dart';
 import '../models/member.dart';
 import '../models/lead.dart';
 import '../services/db_service.dart';
 import '../services/auth_service.dart';
-import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'members_screen.dart';
 import 'leads_screen.dart';
@@ -14,6 +11,7 @@ import 'plans_screen.dart';
 import 'reports_screen.dart';
 import 'settings_screen.dart';
 import 'subscription_screen.dart';
+import 'notifications_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -26,8 +24,6 @@ class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  List<Member> _expiringAlerts = [];
-  List<Lead> _hotLeadAlerts = [];
   int _alertCount = 0;
 
   @override
@@ -47,268 +43,14 @@ class _MainLayoutState extends State<MainLayout> {
     try {
       final members = await DbService.getMembers();
       final leads   = await DbService.getLeads();
-      final exp = members.where((m) => m.status == MemberStatus.expiringSoon || m.isExpiringSoon || m.isExpired).toList();
-      final hot = leads.where((l) => l.status == LeadStatus.hot || l.status == LeadStatus.warm).toList();
+      final expCount = members.where((m) => m.status == MemberStatus.expiringSoon || m.isExpiringSoon || m.isExpired).length;
+      final hotCount = leads.where((l) => l.status == LeadStatus.hot || l.status == LeadStatus.warm).length;
       if (mounted) {
         setState(() {
-          _expiringAlerts = exp;
-          _hotLeadAlerts  = hot;
-          _alertCount     = exp.length + hot.length;
+          _alertCount = expCount + hotCount;
         });
       }
     } catch (_) {}
-  }
-
-  Future<void> _launchWhatsApp(Member member) async {
-    final phone = member.phone.replaceAll(RegExp(r'[^\d]'), '');
-    final full  = phone.length == 10 ? '91$phone' : phone;
-    final msg   = Uri.encodeComponent(
-      'Hi ${member.name}, your Fitnex GYM membership expires on '
-      '${DateFormat('dd MMM yyyy').format(member.subscriptionEnd)}. '
-      'Please renew to keep enjoying your workout sessions!',
-    );
-    final url = Uri.parse('https://wa.me/$full?text=$msg');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> _makeCall(Lead lead) async {
-    final url = Uri.parse('tel:${lead.phone}');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    }
-  }
-
-  void _openNotificationCenter(BuildContext context) {
-    final isDark       = Theme.of(context).brightness == Brightness.dark;
-    final navBgColor   = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final txtPrimary   = isDark ? Colors.white : const Color(0xFF0F172A);
-    final txtSecondary = isDark ? const Color(0xFF8896B3) : const Color(0xFF334155);
-    final dividerColor = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
-    const activeCyan   = Color(0xFF00E5C0);
-    final cyanFg       = AppTheme.darkColor(activeCyan, isDark);
-    final amberFg      = AppTheme.darkColor(const Color(0xFFF59E0B), isDark);
-    final blueFg       = AppTheme.darkColor(const Color(0xFF3B82F6), isDark);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: navBgColor,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.85,
-          expand: false,
-          builder: (_, controller) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: txtSecondary.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.notifications_active_rounded, color: cyanFg, size: 22),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Notifications & Alerts',
-                            style: TextStyle(
-                              color: txtPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: cyanFg.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '$_alertCount Active',
-                          style: TextStyle(color: cyanFg, fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: _alertCount == 0
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check_circle_outline_rounded, size: 48, color: cyanFg),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'All Clear! 🎉',
-                                  style: TextStyle(color: txtPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'No pending renewals or urgent leads at the moment.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: txtSecondary, fontSize: 13),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView(
-                            controller: controller,
-                            children: [
-                              if (_expiringAlerts.isNotEmpty) ...[
-                                Text(
-                                  'Expiring Member Subscriptions',
-                                  style: TextStyle(color: amberFg, fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 8),
-                                ..._expiringAlerts.map((m) {
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF162234) : const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(color: dividerColor),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 18,
-                                          backgroundColor: amberFg.withValues(alpha: 0.2),
-                                          child: Text(
-                                            m.avatarInitials,
-                                            style: TextStyle(color: amberFg, fontWeight: FontWeight.bold, fontSize: 13),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(m.name, style: TextStyle(color: txtPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
-                                              Text('Expires: ${DateFormat('dd MMM yyyy').format(m.subscriptionEnd)}', style: TextStyle(color: txtSecondary, fontSize: 11)),
-                                            ],
-                                          ),
-                                        ),
-                                        InkWell(
-                                          onTap: () => _launchWhatsApp(m),
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF22C55E).withValues(alpha: isDark ? 0.2 : 0.15),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: const Row(
-                                              children: [
-                                                Icon(Icons.chat_bubble_outline_rounded, size: 13, color: Color(0xFF15803D)),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  'WhatsApp',
-                                                  style: TextStyle(color: Color(0xFF15803D), fontSize: 11, fontWeight: FontWeight.bold),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-                                const SizedBox(height: 16),
-                              ],
-                              if (_hotLeadAlerts.isNotEmpty) ...[
-                                Text(
-                                  'Hot Leads Requiring Follow-Up',
-                                  style: TextStyle(color: blueFg, fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 8),
-                                ..._hotLeadAlerts.map((l) {
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF162234) : const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(color: dividerColor),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 18,
-                                          backgroundColor: blueFg.withValues(alpha: 0.2),
-                                          child: Text(
-                                            l.name.isNotEmpty ? l.name[0].toUpperCase() : 'L',
-                                            style: TextStyle(color: blueFg, fontWeight: FontWeight.bold, fontSize: 13),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(l.name, style: TextStyle(color: txtPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
-                                              Text('Phone: ${l.phone}', style: TextStyle(color: txtSecondary, fontSize: 11)),
-                                            ],
-                                          ),
-                                        ),
-                                        InkWell(
-                                          onTap: () => _makeCall(l),
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                            decoration: BoxDecoration(
-                                              color: blueFg.withValues(alpha: isDark ? 0.2 : 0.15),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.call_rounded, size: 13, color: blueFg),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  'Call',
-                                                  style: TextStyle(color: blueFg, fontSize: 11, fontWeight: FontWeight.bold),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-                              ],
-                            ],
-                          ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   final List<_NavItem> _navItems = const [
@@ -434,7 +176,10 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
               ],
             ),
-            onPressed: () => _openNotificationCenter(context),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            ),
           ),
           const SizedBox(width: 6),
         ],
