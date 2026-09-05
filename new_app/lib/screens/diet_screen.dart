@@ -634,6 +634,511 @@ class _DietScreenState extends State<DietScreen> {
     );
   }
 
+  void _openViewDietPlanDialog(DietPlan plan) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
+        final txt = isDark ? Colors.white : Colors.black;
+        final txt2 = isDark ? const Color(0xFF8896B3) : const Color(0xFF334155);
+        final border = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
+        const activeCyan = Color(0xFF00E5C0);
+
+        final isVeg    = plan.category.toLowerCase() == 'veg';
+        final isEgg    = plan.category.toLowerCase() == 'egg';
+        final isVegan  = plan.category.toLowerCase() == 'vegan';
+
+        Color accent = const Color(0xFFEF4444);
+        IconData typeIcon = Icons.set_meal_rounded;
+        if (isVeg) {
+          accent = const Color(0xFF22C55E);
+          typeIcon = Icons.eco_rounded;
+        } else if (isEgg) {
+          accent = const Color(0xFFF59E0B);
+          typeIcon = Icons.egg_rounded;
+        } else if (isVegan) {
+          accent = const Color(0xFF10B981);
+          typeIcon = Icons.spa_rounded;
+        }
+
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: accent.withValues(alpha: 0.15), shape: BoxShape.circle),
+                    child: Icon(typeIcon, color: accent, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(plan.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: txt)),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6, runSpacing: 4,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: isDark ? 0.12 : 0.16),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(plan.CategoryBadge, style: TextStyle(color: AppTheme.darkColor(accent, isDark), fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                            if (plan.goalTag != null && plan.goalTag!.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.12 : 0.16),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text('🎯 ${plan.goalTag}', style: TextStyle(color: AppTheme.darkColor(const Color(0xFF3B82F6), isDark), fontSize: 11, fontWeight: FontWeight.bold)),
+                              ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.12 : 0.16),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text('🔥 ${plan.calories}', style: TextStyle(color: AppTheme.darkColor(const Color(0xFFF59E0B), isDark), fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Macros Row
+                      if (plan.macros != null && plan.macros!.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: border),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _macroItem('💪 Protein', plan.macros!['protein'] ?? 'N/A', activeCyan),
+                              _macroItem('🌾 Carbs', plan.macros!['carbs'] ?? 'N/A', const Color(0xFF8B5CF6)),
+                              _macroItem('🥑 Fats', plan.macros!['fats'] ?? 'N/A', const Color(0xFFEC4899)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      Text('Full Meal Schedule & Plan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: txt)),
+                      const SizedBox(height: 10),
+
+                      if (plan.meals.isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: plan.meals.entries.map((e) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF162234) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _formatMealKey(e.key),
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.darkColor(accent, isDark)),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    e.value,
+                                    style: TextStyle(fontSize: 13, color: txt, height: 1.3),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        )
+                      else if (plan.items.isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: plan.items.map((item) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF162234) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(item, style: TextStyle(fontSize: 13, color: txt)),
+                            );
+                          }).toList(),
+                        ),
+
+                      if (plan.notes != null && plan.notes!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Text('Notes & Hydration Advice', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: txt)),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
+                          ),
+                          child: Text(plan.notes!, style: TextStyle(fontSize: 13, color: txt2, height: 1.3)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Bottom Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _openEditDietPlanDialog(plan);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3B82F6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.edit_rounded, size: 16),
+                      label: const Text('Edit Plan', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _assignPlanToMemberDialog(plan);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: activeCyan,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+                      label: const Text('Assign Plan', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openEditDietPlanDialog(DietPlan plan) async {
+    final titleCtrl    = TextEditingController(text: plan.title);
+    final caloriesCtrl = TextEditingController(text: plan.calories.replaceAll(RegExp(r'[^\d]'), ''));
+    final proteinCtrl  = TextEditingController(text: (plan.macros?['protein'] ?? '150g').replaceAll(RegExp(r'[^\d]'), ''));
+    final carbsCtrl    = TextEditingController(text: (plan.macros?['carbs'] ?? '200g').replaceAll(RegExp(r'[^\d]'), ''));
+    final fatsCtrl     = TextEditingController(text: (plan.macros?['fats'] ?? '50g').replaceAll(RegExp(r'[^\d]'), ''));
+    final waterCtrl    = TextEditingController(text: (plan.waterIntake ?? '3.5').replaceAll(RegExp(r'[^\d\.]'), ''));
+    final notesCtrl    = TextEditingController(text: plan.notes ?? '');
+
+    final earlyMorningCtrl = TextEditingController(text: plan.meals['early_morning'] ?? '');
+    final breakfastCtrl    = TextEditingController(text: plan.meals['breakfast'] ?? '');
+    final midMorningCtrl   = TextEditingController(text: plan.meals['mid_morning'] ?? '');
+    final lunchCtrl        = TextEditingController(text: plan.meals['lunch'] ?? '');
+    final postWorkoutCtrl  = TextEditingController(text: plan.meals['post_workout'] ?? '');
+    final dinnerCtrl       = TextEditingController(text: plan.meals['dinner'] ?? '');
+    final bedtimeCtrl      = TextEditingController(text: plan.meals['bedtime'] ?? '');
+
+    String selectedCategory = plan.category.toLowerCase();
+    String selectedGoal = plan.goalTag ?? 'Fat Loss';
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
+            final txt = isDark ? Colors.white : Colors.black;
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.88,
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36, height: 4,
+                      decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.edit_note_rounded, color: AppTheme.primary, size: 24),
+                          const SizedBox(width: 10),
+                          Text('Edit Diet Template', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: txt)),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: titleCtrl,
+                            decoration: InputDecoration(
+                              labelText: 'Template Title *',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: ['veg', 'nonveg', 'egg', 'vegan'].contains(selectedCategory) ? selectedCategory : 'veg',
+                                  dropdownColor: bg,
+                                  style: TextStyle(color: txt, fontWeight: FontWeight.bold),
+                                  decoration: InputDecoration(
+                                    labelText: 'Category',
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(value: 'veg', child: Text('🥗 Pure Veg')),
+                                    DropdownMenuItem(value: 'egg', child: Text('🥚 Eggetarian')),
+                                    DropdownMenuItem(value: 'nonveg', child: Text('🍗 Non-Veg')),
+                                    DropdownMenuItem(value: 'vegan', child: Text('🌱 Vegan')),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) setModalState(() => selectedCategory = val);
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
+                                  controller: caloriesCtrl,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Calories (kcal)',
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: proteinCtrl,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Protein (g)',
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: carbsCtrl,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Carbs (g)',
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: fatsCtrl,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Fats (g)',
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text('Meal Schedule', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: txt)),
+                          const SizedBox(height: 10),
+                          _mealSlotField('🌅 Early Morning', earlyMorningCtrl),
+                          _mealSlotField('🍳 Breakfast', breakfastCtrl),
+                          _mealSlotField('🍎 Mid-Morning', midMorningCtrl),
+                          _mealSlotField('🥗 Lunch', lunchCtrl),
+                          _mealSlotField('💪 Post-Workout', postWorkoutCtrl),
+                          _mealSlotField('🍲 Dinner', dinnerCtrl),
+                          _mealSlotField('🥛 Bedtime', bedtimeCtrl),
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: notesCtrl,
+                            maxLines: 2,
+                            decoration: InputDecoration(
+                              labelText: 'Notes / Hydration Advice',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              final title = titleCtrl.text.trim();
+                              if (title.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a template title')));
+                                return;
+                              }
+                              setModalState(() => isSaving = true);
+                              try {
+                                final mealsMap = <String, String>{};
+                                if (earlyMorningCtrl.text.trim().isNotEmpty) mealsMap['early_morning'] = earlyMorningCtrl.text.trim();
+                                if (breakfastCtrl.text.trim().isNotEmpty) mealsMap['breakfast'] = breakfastCtrl.text.trim();
+                                if (midMorningCtrl.text.trim().isNotEmpty) mealsMap['mid_morning'] = midMorningCtrl.text.trim();
+                                if (lunchCtrl.text.trim().isNotEmpty) mealsMap['lunch'] = lunchCtrl.text.trim();
+                                if (postWorkoutCtrl.text.trim().isNotEmpty) mealsMap['post_workout'] = postWorkoutCtrl.text.trim();
+                                if (dinnerCtrl.text.trim().isNotEmpty) mealsMap['dinner'] = dinnerCtrl.text.trim();
+                                if (bedtimeCtrl.text.trim().isNotEmpty) mealsMap['bedtime'] = bedtimeCtrl.text.trim();
+
+                                final updates = {
+                                  'title': title,
+                                  'type': selectedCategory,
+                                  'category': selectedCategory,
+                                  'goal_tag': selectedGoal,
+                                  'calories': '${caloriesCtrl.text.trim()} kcal',
+                                  'macros': {
+                                    'protein': '${proteinCtrl.text.trim()}g',
+                                    'carbs': '${carbsCtrl.text.trim()}g',
+                                    'fats': '${fatsCtrl.text.trim()}g',
+                                  },
+                                  'water_intake': '${waterCtrl.text.trim()}L',
+                                  'notes': notesCtrl.text.trim(),
+                                  'meals': mealsMap,
+                                };
+
+                                final updatedPlan = await DbService.updateDietPlan(plan.id, updates);
+                                final idx = _plans.indexWhere((p) => p.id == plan.id);
+                                if (idx != -1) {
+                                  setState(() => _plans[idx] = updatedPlan);
+                                }
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Updated "${updatedPlan.title}" successfully! 🎉')));
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update template: $e')));
+                              } finally {
+                                if (ctx.mounted) setModalState(() => isSaving = false);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: isSaving
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Icon(Icons.check_circle_rounded),
+                      label: Text(isSaving ? 'Saving Changes...' : 'Save Template Changes', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _mealSlotField(String label, TextEditingController ctrl) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: ctrl,
+        decoration: InputDecoration(
+          labelText: label,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+
   Widget _dietCard(
     DietPlan plan, bool isDark,
     Color cardBg, Color border,
@@ -657,6 +1162,7 @@ class _DietScreenState extends State<DietScreen> {
     }
 
     const activeCyan = Color(0xFF00E5C0);
+    final mealsCount = plan.meals.isNotEmpty ? plan.meals.length : plan.items.length;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -727,11 +1233,11 @@ class _DietScreenState extends State<DietScreen> {
             ],
           ),
 
-          // Macros Row (if present)
+          // Macros Row
           if (plan.macros != null && plan.macros!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
@@ -747,79 +1253,54 @@ class _DietScreenState extends State<DietScreen> {
             ),
           ],
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // Meals Display
-          if (plan.meals.isNotEmpty) ...[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: plan.meals.entries.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Container(width: 5, height: 5, decoration: BoxDecoration(color: accent, shape: BoxShape.circle)),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: TextStyle(fontSize: 13, color: txt, height: 1.4),
-                          children: [
-                            TextSpan(text: '${_formatMealKey(e.key)}: ', style: TextStyle(fontWeight: FontWeight.bold, color: txt)),
-                            TextSpan(text: e.value, style: TextStyle(color: txt, fontWeight: isDark ? FontWeight.normal : FontWeight.w500)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )).toList(),
-            ),
-          ] else ...[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: plan.items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Container(width: 5, height: 5, decoration: BoxDecoration(color: accent, shape: BoxShape.circle)),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(item, style: TextStyle(fontSize: 13, color: txt2, height: 1.4))),
-                  ],
-                ),
-              )).toList(),
-            ),
-          ],
+          // Minimal Meal Count Summary Badge
+          Row(
+            children: [
+              Icon(Icons.restaurant_menu_rounded, size: 14, color: muted),
+              const SizedBox(width: 6),
+              Text(
+                '$mealsCount Meals Planned',
+                style: TextStyle(color: txt2, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
 
           const SizedBox(height: 12),
 
-          // Action Buttons
+          // Action Buttons Bar (View, Edit, Assign, Share, PDF)
           Wrap(
             spacing: 8, runSpacing: 8,
             children: [
               _actionBtn(
-                label: 'Assign to Member',
-                icon: Icons.person_add_alt_1_rounded,
+                label: 'View',
+                icon: Icons.visibility_rounded,
                 color: activeCyan,
+                onTap: () => _openViewDietPlanDialog(plan),
+              ),
+              _actionBtn(
+                label: 'Edit',
+                icon: Icons.edit_rounded,
+                color: const Color(0xFF3B82F6),
+                onTap: () => _openEditDietPlanDialog(plan),
+              ),
+              _actionBtn(
+                label: 'Assign',
+                icon: Icons.person_add_alt_1_rounded,
+                color: const Color(0xFF22C55E),
                 onTap: () => _assignPlanToMemberDialog(plan),
               ),
               _actionBtn(
                 label: 'Copy',
                 icon: Icons.copy_rounded,
-                color: const Color(0xFF3B82F6),
+                color: const Color(0xFFF59E0B),
                 onTap: () => _copyPlan(plan),
               ),
               _actionBtn(
                 label: 'WhatsApp',
                 icon: Icons.send_rounded,
-                color: const Color(0xFF22C55E),
+                color: const Color(0xFF10B981),
                 onTap: () => _shareWhatsApp(plan),
               ),
               _actionBtn(

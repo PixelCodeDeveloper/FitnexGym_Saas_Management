@@ -574,6 +574,18 @@ function tenantRoutes(path, schema, table, order = 'created_at DESC') {
     const { rows } = await db.query(`INSERT INTO ${table} (${columns}) VALUES (${placeholders}) RETURNING *`, [req.gym.id, ...values]);
     await audit(req, `${table}.create`, table, rows[0].id); res.status(201).json(rows[0]);
   }));
+  app.patch(`/v1/${path}/:id`, auth, gymContext, requireGym, asyncRoute(async (req, res) => {
+    const body = parse(schema.partial(), req.body); const keys = Object.keys(body);
+    if (keys.length === 0) return res.json({ error: 'No fields to update.' });
+    const setClause = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
+    const values = keys.map((k) => (typeof body[k] === 'object' && body[k] !== null ? JSON.stringify(body[k]) : body[k]));
+    const { rows } = await db.query(
+      `UPDATE ${table} SET ${setClause} WHERE id = $1 AND gym_id = $2 RETURNING *`,
+      [parse(uuid, req.params.id), req.gym.id, ...values]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Record not found.' });
+    await audit(req, `${table}.update`, table, req.params.id); res.json(rows[0]);
+  }));
   app.delete(`/v1/${path}/:id`, auth, gymContext, requireGym, asyncRoute(async (req, res) => {
     const { rowCount } = await db.query(`DELETE FROM ${table} WHERE id = $1 AND gym_id = $2`, [parse(uuid, req.params.id), req.gym.id]);
     if (!rowCount) return res.status(404).json({ error: 'Record not found.' });

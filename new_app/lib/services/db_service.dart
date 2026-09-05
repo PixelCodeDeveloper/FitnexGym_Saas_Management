@@ -122,6 +122,10 @@ class DbService {
   static Future<DietPlan> addDietPlan(DietPlan x) async => DietPlan.fromJson(
     await ApiClient.post('/v1/diet-plans', x.toJson()) as Map<String, dynamic>,
   );
+  static Future<DietPlan> updateDietPlan(String id, Map<String, dynamic> updates) async {
+    final res = await ApiClient.patch('/v1/diet-plans/$id', updates);
+    return DietPlan.fromJson(res as Map<String, dynamic>);
+  }
   static Future<void> deleteDietPlan(String id) async {
     try {
       await ApiClient.delete('/v1/diet-plans/$id');
