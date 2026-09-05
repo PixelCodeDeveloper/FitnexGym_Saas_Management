@@ -750,127 +750,188 @@ class _MembersScreenState extends State<MembersScreen> {
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                // Avatar
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: activeCyan.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      initials.isEmpty ? 'M' : initials,
-                      style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
+            // Avatar
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: activeCyan.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  initials.isEmpty ? 'M' : initials,
+                  style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // Member Main Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              m.name,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(statusIcon, size: 10, color: statusColor),
-                                const SizedBox(width: 3),
-                                Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                        ],
+                      Flexible(
+                        child: Text(
+                          m.name,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const SizedBox(height: 3),
-                      Text('+91 ${m.phone}', style: TextStyle(color: txt2, fontSize: 12)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(statusIcon, size: 10, color: statusColor),
+                            const SizedBox(width: 3),
+                            Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text('+91 ${m.phone}', style: TextStyle(color: txt2, fontSize: 12, fontWeight: FontWeight.w500)),
+                      const SizedBox(width: 8),
+                      Text('•', style: TextStyle(color: muted, fontSize: 12)),
+                      const SizedBox(width: 8),
+                      Text('₹${m.amountPaid.toInt()}', style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded, size: 11, color: muted),
+                      const SizedBox(width: 4),
+                      Text('Exp: $expStr', style: TextStyle(color: txt2, fontSize: 11)),
+                      if (daysLeft >= 0) ...[
+                        const SizedBox(width: 6),
+                        Text('($daysLeft days left)', style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // 3-Dot Popup Menu Button
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert_rounded, color: txt2, size: 22),
+              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+              elevation: 8,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              onSelected: (value) {
+                switch (value) {
+                  case 'view':
+                    _openMemberDetailScreen(m);
+                    break;
+                  case 'diet':
+                    _openAssignDietFromList(m);
+                    break;
+                  case 'whatsapp':
+                    _showWhatsAppOptions(m);
+                    break;
+                  case 'email':
+                    _showEmailOptions(m);
+                    break;
+                  case 'renew':
+                    _openRenewScreen(m);
+                    break;
+                  case 'edit':
+                    _openEditMemberScreen(m);
+                    break;
+                  case 'delete':
+                    _confirmDelete(m);
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'view',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.visibility_rounded, size: 18, color: activeCyan),
+                      const SizedBox(width: 12),
+                      Text('View Details', style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.visibility_outlined, size: 20, color: activeCyan),
-                  tooltip: 'View Member Details',
-                  onPressed: () => _openMemberDetailScreen(m),
+                PopupMenuItem(
+                  value: 'diet',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.restaurant_menu_rounded, size: 18, color: activeCyan),
+                      const SizedBox(width: 12),
+                      Text('Assign Diet', style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.edit_outlined, size: 20, color: txt2),
-                  tooltip: 'Edit Member',
-                  onPressed: () => _openEditMemberScreen(m),
+                PopupMenuItem(
+                  value: 'whatsapp',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.chat_rounded, size: 18, color: Color(0xFF22C55E)),
+                      const SizedBox(width: 12),
+                      Text('WhatsApp Reminder', style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.delete_outline_rounded, size: 20, color: const Color(0xFFEF4444).withValues(alpha: 0.8)),
-                  tooltip: 'Delete Member',
-                  onPressed: () => _confirmDelete(m),
+                PopupMenuItem(
+                  value: 'email',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Color(0xFF0EA5E9)),
+                      const SizedBox(width: 12),
+                      Text('PDF & Email Receipt', style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'renew',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.autorenew_rounded, size: 18, color: Color(0xFF8B5CF6)),
+                      const SizedBox(width: 12),
+                      Text('Renew Membership', style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_rounded, size: 18, color: txt2),
+                      const SizedBox(width: 12),
+                      Text('Edit Profile', style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                      const SizedBox(width: 12),
+                      const Text('Delete Member', style: TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.calendar_today_rounded, size: 12, color: muted),
-                const SizedBox(width: 5),
-                Text('Exp: $expStr', style: TextStyle(color: txt2, fontSize: 12)),
-                if (daysLeft >= 0) ...[
-                  const SizedBox(width: 8),
-                  Text('• $daysLeft days left', style: TextStyle(color: _statusColor(m.status), fontSize: 11, fontWeight: FontWeight.w600)),
-                ],
-                const Spacer(),
-                Text('₹${m.amountPaid.toStringAsFixed(0)}', style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 13)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                _actionChip(Icons.restaurant_menu_rounded, 'Diet', activeCyan, () => _openAssignDietFromList(m)),
-                const SizedBox(width: 6),
-                _actionChip(Icons.chat_rounded, 'WhatsApp', const Color(0xFF22C55E), () => _showWhatsAppOptions(m)),
-                const SizedBox(width: 6),
-                _actionChip(Icons.picture_as_pdf_rounded, 'PDF / Email', const Color(0xFF0EA5E9), () => _showEmailOptions(m)),
-                const SizedBox(width: 6),
-                _actionChip(Icons.autorenew_rounded, 'Renew', const Color(0xFF8B5CF6), () => _openRenewScreen(m)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _actionChip(IconData icon, String label, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
