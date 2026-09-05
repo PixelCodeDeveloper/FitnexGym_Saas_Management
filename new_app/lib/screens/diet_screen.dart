@@ -895,6 +895,20 @@ class _DietScreenState extends State<DietScreen> {
     }
   }
 
+  Widget _mealSlotField(String label, TextEditingController ctrl) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: ctrl,
+        decoration: InputDecoration(
+          labelText: label,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+
   Widget _dietCard(
     DietPlan plan, bool isDark,
     Color cardBg, Color border,
