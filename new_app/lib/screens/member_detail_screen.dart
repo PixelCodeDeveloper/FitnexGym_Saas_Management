@@ -507,10 +507,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 32,
-                                backgroundColor: activeCyan.withValues(alpha: 0.15),
+                                backgroundColor: (isDark ? activeCyan : AppTheme.darkColor(activeCyan, isDark)).withValues(alpha: isDark ? 0.15 : 0.12),
                                 child: Text(
                                   _member.avatarInitials,
-                                  style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 20),
+                                  style: TextStyle(color: isDark ? activeCyan : AppTheme.darkColor(activeCyan, isDark), fontWeight: FontWeight.bold, fontSize: 20),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -529,12 +529,12 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: statusColor.withValues(alpha: 0.15),
+                                            color: statusColor.withValues(alpha: isDark ? 0.15 : 0.16),
                                             borderRadius: BorderRadius.circular(20),
                                           ),
                                           child: Text(
                                             _member.statusText,
-                                            style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                            style: TextStyle(color: AppTheme.darkColor(statusColor, isDark), fontSize: 11, fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                       ],
@@ -562,12 +562,12 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        const Icon(Icons.how_to_reg_rounded, size: 14, color: activeCyan),
+                                        Icon(Icons.how_to_reg_rounded, size: 14, color: AppTheme.darkColor(activeCyan, isDark)),
                                         const SizedBox(width: 6),
                                         Expanded(
                                           child: Text(
                                             'Joined App: ${DateFormat('dd MMM yyyy, hh:mm a').format(_member.createdAt)}',
-                                            style: const TextStyle(color: activeCyan, fontSize: 12, fontWeight: FontWeight.w600),
+                                            style: TextStyle(color: AppTheme.darkColor(activeCyan, isDark), fontSize: 12, fontWeight: FontWeight.w600),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -934,21 +934,22 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Widget _actionTile({required IconData icon, required String label, required Color color, required bool isDark, required VoidCallback onTap}) {
+    final fg = AppTheme.darkColor(color, isDark);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: isDark ? 0.2 : 0.1),
+          color: color.withValues(alpha: isDark ? 0.2 : 0.15),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: fg.withValues(alpha: isDark ? 0.3 : 0.25)),
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 20),
+            Icon(icon, color: fg, size: 20),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)),
+            Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 11)),
           ],
         ),
       ),

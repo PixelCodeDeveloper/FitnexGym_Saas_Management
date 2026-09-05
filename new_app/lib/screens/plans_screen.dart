@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/subscription_plan.dart';
 import '../services/db_service.dart';
+import '../theme/app_theme.dart';
 import 'forms/add_plan_screen.dart';
 
 class PlansScreen extends StatefulWidget {
@@ -82,6 +83,7 @@ class _PlansScreenState extends State<PlansScreen> {
   ) {
     final isPopular = plan.durationDays >= 85 && plan.durationDays <= 95;
     const activeCyan = Color(0xFF00E5C0);
+    final cyanFg     = AppTheme.darkColor(activeCyan, isDark);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -91,12 +93,12 @@ class _PlansScreenState extends State<PlansScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: activeCyan.withValues(alpha: 0.15),
+              color: cyanFg.withValues(alpha: isDark ? 0.15 : 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.card_membership_rounded,
-              color: activeCyan,
+              color: cyanFg,
               size: 22,
             ),
           ),
@@ -113,12 +115,12 @@ class _PlansScreenState extends State<PlansScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: activeCyan,
+                          color: cyanFg,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
                           'POPULAR',
-                          style: TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -133,12 +135,12 @@ class _PlansScreenState extends State<PlansScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: activeCyan.withValues(alpha: 0.12),
+                    color: cyanFg.withValues(alpha: isDark ? 0.12 : 0.14),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     '${plan.durationDays} Days',
-                    style: const TextStyle(color: activeCyan, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: cyanFg, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -149,8 +151,8 @@ class _PlansScreenState extends State<PlansScreen> {
             children: [
               Text(
                 '₹${plan.price.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  color: activeCyan,
+                style: TextStyle(
+                  color: cyanFg,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                   letterSpacing: -0.5,

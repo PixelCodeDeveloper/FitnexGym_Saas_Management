@@ -436,11 +436,14 @@ class _LeadsScreenState extends State<LeadsScreen> {
     Color border,
     Color txt, Color txt2, Color muted,
   ) {
-    final sc       = _statusColor(lead.status);
+    final rawSc    = _statusColor(lead.status);
+    final sc       = AppTheme.darkColor(rawSc, isDark);
     final sl       = _statusLabel(lead.status);
     final initials = lead.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
     final followUp = DateFormat('dd MMM yyyy').format(lead.followUpDate);
     const activeCyan = Color(0xFF00E5C0);
+    final cyanFg     = AppTheme.darkColor(activeCyan, isDark);
+    final blueFg     = AppTheme.darkColor(const Color(0xFF3B82F6), isDark);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -454,7 +457,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: sc.withValues(alpha: 0.15),
+                  color: rawSc.withValues(alpha: isDark ? 0.15 : 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -479,7 +482,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: sc.withValues(alpha: 0.15),
+                  color: rawSc.withValues(alpha: isDark ? 0.15 : 0.16),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(sl, style: TextStyle(color: sc, fontSize: 11, fontWeight: FontWeight.bold)),
@@ -499,13 +502,13 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 padding: const EdgeInsets.all(10),
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: activeCyan.withValues(alpha: 0.08),
+                  color: activeCyan.withValues(alpha: isDark ? 0.08 : 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.sticky_note_2_rounded, size: 14, color: activeCyan),
+                    Icon(Icons.sticky_note_2_rounded, size: 14, color: cyanFg),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(lead.note!, style: TextStyle(color: txt2, fontSize: 12, fontStyle: FontStyle.italic)),
@@ -522,15 +525,15 @@ class _LeadsScreenState extends State<LeadsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: activeCyan.withValues(alpha: 0.1),
+                  color: activeCyan.withValues(alpha: isDark ? 0.1 : 0.14),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.event_rounded, size: 13, color: activeCyan),
+                    Icon(Icons.event_rounded, size: 13, color: cyanFg),
                     const SizedBox(width: 4),
-                    Text('Follow-up: $followUp', style: const TextStyle(color: activeCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text('Follow-up: $followUp', style: TextStyle(color: cyanFg, fontSize: 11, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -541,14 +544,14 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                    color: const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.12 : 0.16),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.call_rounded, size: 13, color: Color(0xFF3B82F6)),
-                      SizedBox(width: 4),
-                      Text('Call', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 11, fontWeight: FontWeight.bold)),
+                      Icon(Icons.call_rounded, size: 13, color: blueFg),
+                      const SizedBox(width: 4),
+                      Text('Call', style: TextStyle(color: blueFg, fontSize: 11, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -560,14 +563,14 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: activeCyan.withValues(alpha: 0.15),
+                    color: activeCyan.withValues(alpha: isDark ? 0.15 : 0.16),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.person_add_alt_1_rounded, size: 13, color: activeCyan),
-                      SizedBox(width: 4),
-                      Text('Convert', style: TextStyle(color: activeCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Icon(Icons.person_add_alt_1_rounded, size: 13, color: cyanFg),
+                      const SizedBox(width: 4),
+                      Text('Convert', style: TextStyle(color: cyanFg, fontSize: 11, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
