@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/gym.dart';
 import '../models/member.dart';
 import '../models/lead.dart';
+import '../models/payment.dart';
 import '../services/db_service.dart';
+import '../theme/app_theme.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int tabIndex)? onNavigateTab;
@@ -25,7 +28,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _expiringCount = 0;
   int _hotLeadsCount = 0;
   double _monthlyRevenue = 0.0;
-  List<dynamic> _recentPayments = [];
+  List<Member> _expiringMembers = [];
+  List<Lead> _hotLeads = [];
+  List<Payment> _recentPayments = [];
 
   Gym? _gym;
 
@@ -33,6 +38,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadDashboardData();
+    DbService.membersRefreshNotifier.addListener(_onMembersChanged);
+  }
+
+  @override
+  void dispose() {
+    DbService.membersRefreshNotifier.removeListener(_onMembersChanged);
+    super.dispose();
+  }
+
+  void _onMembersChanged() {
+    if (mounted) _loadDashboardData();
   }
 
   Future<void> _loadDashboardData() async {
@@ -44,21 +60,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final rev      = await DbService.getMonthlyRevenue();
       final payments = await DbService.getPayments();
 
-      int expSoon = 0;
-      for (final m in members) {
-        if (m.status == MemberStatus.expiringSoon) expSoon++;
-      }
+      final expList = members.where((m) => m.status == MemberStatus.expiringSoon || m.isExpiringSoon || m.isExpired).toList();
+      final hotList = leads.where((l) => l.status == LeadStatus.hot || l.status == LeadStatus.warm).toList();
+
       setState(() {
-        _gym            = gym;
-        _totalMembers   = members.length;
-        _expiringCount  = expSoon;
-        _hotLeadsCount  = leads.where((l) => l.status == LeadStatus.hot).length;
-        _monthlyRevenue = rev;
-        _recentPayments = payments.take(5).toList();
-        _isLoading      = false;
+        _gym             = gym;
+        _totalMembers    = members.length;
+        _expiringCount   = expList.length;
+        _hotLeadsCount   = hotList.length;
+        _expiringMembers = expList.take(4).toList();
+        _hotLeads        = hotList.take(3).toList();
+        _monthlyRevenue  = rev;
+        _recentPayments  = payments.take(5).toList();
+        _isLoading       = false;
       });
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _launchWhatsApp(Member member) async {
+    final phone = member.phone.replaceAll(RegExp(r'[^\d]'), '');
+    final full  = phone.length == 10 ? '91$phone' : phone;
+    final msg   = Uri.encodeComponent(
+      'Hi ${member.name}, your Fitnex GYM membership expires on '
+      '${DateFormat('dd MMM yyyy').format(member.subscriptionEnd)}. '
+      'Please renew to keep enjoying your workout sessions!',
+    );
+    final url = Uri.parse('https://wa.me/$full?text=$msg');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _makeCall(Lead lead) async {
+    final url = Uri.parse('tel:${lead.phone}');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
     }
   }
 
@@ -66,22 +104,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pageBgColor  = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
+    final cardBg       = isDark ? const Color(0xFF0F172A) : Colors.white;
     final txtPrimary   = isDark ? Colors.white : const Color(0xFF0F172A);
     final txtSecondary = isDark ? const Color(0xFF8896B3) : const Color(0xFF334155);
     final dividerColor = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
     const activeCyan   = Color(0xFF00E5C0);
+    final cyanFg       = AppTheme.darkColor(activeCyan, isDark);
+    final amberFg      = AppTheme.darkColor(const Color(0xFFF59E0B), isDark);
+    final purpleFg     = AppTheme.darkColor(const Color(0xFF8B5CF6), isDark);
+    final blueFg       = AppTheme.darkColor(const Color(0xFF3B82F6), isDark);
 
     if (_isLoading) {
       return Scaffold(
         backgroundColor: pageBgColor,
-        body: const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2)),
+        body: Center(child: CircularProgressIndicator(color: cyanFg, strokeWidth: 2)),
       );
     }
 
     return Scaffold(
       backgroundColor: pageBgColor,
       body: RefreshIndicator(
-        color: activeCyan,
+        color: cyanFg,
         backgroundColor: isDark ? const Color(0xFF0D1626) : Colors.white,
         onRefresh: _loadDashboardData,
         child: SingleChildScrollView(
@@ -90,7 +133,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Top Greeting Header (Flat layout on page background) ──
+              // ── Top Greeting Header ──
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                 child: Row(
@@ -123,7 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           width: 32,
                           height: 3,
                           decoration: BoxDecoration(
-                            color: activeCyan,
+                            color: cyanFg,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -143,9 +186,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
-              // ── Quick Stats Section (Flat layout) ──
+              // ── Quick Stats Section ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -155,96 +198,235 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   GestureDetector(
                     onTap: () => widget.onNavigateTab?.call(1),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Text('View All ', style: TextStyle(color: activeCyan, fontSize: 12, fontWeight: FontWeight.w600)),
-                        Icon(Icons.arrow_forward_rounded, color: activeCyan, size: 14),
+                        Text('View All ', style: TextStyle(color: cyanFg, fontSize: 12, fontWeight: FontWeight.w600)),
+                        Icon(Icons.arrow_forward_rounded, color: cyanFg, size: 14),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    Expanded(child: _statItem(Icons.groups_rounded, '$_totalMembers', 'Total Members', activeCyan, txtPrimary, txtSecondary)),
+                    Expanded(child: _statItem(Icons.groups_rounded, '$_totalMembers', 'Total Members', cyanFg, txtPrimary, txtSecondary)),
                     _vDivider(dividerColor),
-                    Expanded(child: _statItem(Icons.currency_rupee_rounded, '₹${_fmt(_monthlyRevenue)}', 'Revenue', const Color(0xFF3B82F6), txtPrimary, txtSecondary)),
+                    Expanded(child: _statItem(Icons.currency_rupee_rounded, '₹${_fmt(_monthlyRevenue)}', 'Revenue', blueFg, txtPrimary, txtSecondary)),
                     _vDivider(dividerColor),
-                    Expanded(child: _statItem(Icons.timer_outlined, '$_expiringCount', 'Expiring Soon', const Color(0xFFF59E0B), txtPrimary, txtSecondary)),
+                    Expanded(child: _statItem(Icons.timer_outlined, '$_expiringCount', 'Expiring Soon', amberFg, txtPrimary, txtSecondary)),
                     _vDivider(dividerColor),
-                    Expanded(child: _statItem(Icons.bar_chart_rounded, '$_hotLeadsCount', 'New Leads', const Color(0xFF8B5CF6), txtPrimary, txtSecondary)),
+                    Expanded(child: _statItem(Icons.bar_chart_rounded, '$_hotLeadsCount', 'New Leads', purpleFg, txtPrimary, txtSecondary)),
                   ],
                 ),
               ),
 
               const SizedBox(height: 28),
 
-              // ── Quick Actions Section (Flat list layout) ──
-              Text(
-                'Quick Actions',
-                style: TextStyle(color: txtPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Column(
+              // ── Expiring Members Action Required ──
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _actionTile(
-                    icon: Icons.person_add_alt_1_rounded,
-                    iconBg: activeCyan.withValues(alpha: 0.15),
-                    iconColor: activeCyan,
-                    title: 'Add New Member',
-                    subtitle: 'Register a new member',
-                    txtPrimary: txtPrimary,
-                    txtSecondary: txtSecondary,
-                    onTap: () {
-                      if (widget.onAddMember != null) {
-                        widget.onAddMember!();
-                      } else {
-                        widget.onNavigateTab?.call(1);
-                      }
-                    },
+                  Row(
+                    children: [
+                      Icon(Icons.timer_rounded, color: amberFg, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Expiring Members Alert',
+                        style: TextStyle(color: txtPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                  Divider(height: 1, color: dividerColor),
-                  _actionTile(
-                    icon: Icons.groups_rounded,
-                    iconBg: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                    iconColor: const Color(0xFF3B82F6),
-                    title: 'View Members',
-                    subtitle: 'Manage all members',
-                    txtPrimary: txtPrimary,
-                    txtSecondary: txtSecondary,
+                  GestureDetector(
                     onTap: () => widget.onNavigateTab?.call(1),
-                  ),
-                  Divider(height: 1, color: dividerColor),
-                  _actionTile(
-                    icon: Icons.person_add_rounded,
-                    iconBg: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                    iconColor: const Color(0xFFF59E0B),
-                    title: 'Leads / Inquiries',
-                    subtitle: 'Track and convert leads',
-                    txtPrimary: txtPrimary,
-                    txtSecondary: txtSecondary,
-                    onTap: () => widget.onNavigateTab?.call(2),
-                  ),
-                  Divider(height: 1, color: dividerColor),
-                  _actionTile(
-                    icon: Icons.assessment_rounded,
-                    iconBg: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                    iconColor: const Color(0xFF8B5CF6),
-                    title: 'Reports',
-                    subtitle: 'View analytics and insights',
-                    txtPrimary: txtPrimary,
-                    txtSecondary: txtSecondary,
-                    onTap: () => widget.onNavigateTab?.call(5),
+                    child: Row(
+                      children: [
+                        Text('Members ', style: TextStyle(color: cyanFg, fontSize: 12, fontWeight: FontWeight.w600)),
+                        Icon(Icons.arrow_forward_rounded, color: cyanFg, size: 14),
+                      ],
+                    ),
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              if (_expiringMembers.isEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: dividerColor),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: AppTheme.darkColor(AppTheme.success, isDark), size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'All memberships up to date! 🎉',
+                          style: TextStyle(color: txtPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Column(
+                  children: _expiringMembers.map((m) {
+                    final daysLeft = m.subscriptionEnd.difference(DateTime.now()).inDays;
+                    final isExp = daysLeft < 0;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: dividerColor),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: amberFg.withValues(alpha: isDark ? 0.15 : 0.12),
+                            child: Text(
+                              m.avatarInitials,
+                              style: TextStyle(color: amberFg, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(m.name, style: TextStyle(color: txtPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isExp ? 'Expired ${daysLeft.abs()} days ago' : 'Expires in ${daysLeft == 0 ? "today" : "$daysLeft days"}',
+                                  style: TextStyle(color: isExp ? AppTheme.darkColor(AppTheme.error, isDark) : amberFg, fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => _launchWhatsApp(m),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppTheme.darkColor(AppTheme.success, isDark).withValues(alpha: isDark ? 0.15 : 0.16),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.send_rounded, size: 13, color: AppTheme.darkColor(AppTheme.success, isDark)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Reminder',
+                                    style: TextStyle(color: AppTheme.darkColor(AppTheme.success, isDark), fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
-              // ── Recent Transactions Section (Flat layout) ──
+              // ── Hot Leads / Inquiries Follow-up ──
+              if (_hotLeads.isNotEmpty) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.local_fire_department_rounded, color: amberFg, size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Hot Leads Follow-up',
+                          style: TextStyle(color: txtPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => widget.onNavigateTab?.call(2),
+                      child: Row(
+                        children: [
+                          Text('Leads ', style: TextStyle(color: cyanFg, fontSize: 12, fontWeight: FontWeight.w600)),
+                          Icon(Icons.arrow_forward_rounded, color: cyanFg, size: 14),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Column(
+                  children: _hotLeads.map((l) {
+                    final followUpStr = DateFormat('dd MMM').format(l.followUpDate);
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: dividerColor),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: blueFg.withValues(alpha: isDark ? 0.15 : 0.12),
+                            child: Text(
+                              l.name.isNotEmpty ? l.name[0].toUpperCase() : 'L',
+                              style: TextStyle(color: blueFg, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(l.name, style: TextStyle(color: txtPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+                                const SizedBox(height: 2),
+                                Text('Follow-up: $followUpStr', style: TextStyle(color: txtSecondary, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => _makeCall(l),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: blueFg.withValues(alpha: isDark ? 0.15 : 0.16),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.call_rounded, size: 13, color: blueFg),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Call',
+                                    style: TextStyle(color: blueFg, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              // ── Recent Transactions Section ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -254,19 +436,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   GestureDetector(
                     onTap: () => widget.onNavigateTab?.call(5),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Text('View All ', style: TextStyle(color: activeCyan, fontSize: 12, fontWeight: FontWeight.w600)),
-                        Icon(Icons.arrow_forward_rounded, color: activeCyan, size: 14),
+                        Text('View All ', style: TextStyle(color: cyanFg, fontSize: 12, fontWeight: FontWeight.w600)),
+                        Icon(Icons.arrow_forward_rounded, color: cyanFg, size: 14),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               if (_recentPayments.isEmpty)
-                Padding(
+                Container(
                   padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: dividerColor),
+                  ),
                   child: Center(
                     child: Column(
                       children: [
@@ -285,7 +472,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Payments will appear here',
+                          'Logged member payments will appear here',
                           style: TextStyle(color: txtSecondary, fontSize: 12),
                         ),
                       ],
@@ -293,19 +480,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 )
               else
-                ...List.generate(_recentPayments.length, (i) {
-                  final p = _recentPayments[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _transactionTile(
-                      p.memberName ?? 'Member',
-                      p.planName ?? 'Payment',
-                      p.amount,
-                      txtPrimary,
-                      txtSecondary,
-                    ),
-                  );
-                }),
+                Column(
+                  children: List.generate(_recentPayments.length, (i) {
+                    final p = _recentPayments[i];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: dividerColor),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: cyanFg.withValues(alpha: isDark ? 0.15 : 0.12),
+                            child: Text(
+                              (p.memberName != null && p.memberName!.isNotEmpty) ? p.memberName![0].toUpperCase() : 'M',
+                              style: TextStyle(color: cyanFg, fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(p.memberName ?? 'Member', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: txtPrimary)),
+                                const SizedBox(height: 2),
+                                Text(p.planName ?? 'Payment Entry', style: TextStyle(color: txtSecondary, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: cyanFg.withValues(alpha: isDark ? 0.15 : 0.14),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '₹${p.amount.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                color: cyanFg,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
             ],
           ),
         ),
@@ -337,100 +563,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       height: 44,
       width: 1,
       color: dividerColor,
-    );
-  }
-
-  Widget _actionTile({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required Color txtPrimary,
-    required Color txtSecondary,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: iconBg,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(color: txtPrimary, fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(color: txtSecondary, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: txtSecondary, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _transactionTile(String name, String plan, double amount, Color txtPrimary, Color txtSecondary) {
-    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'M';
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: const Color(0xFF00E5C0).withValues(alpha: 0.15),
-            child: Text(
-              initials,
-              style: const TextStyle(color: Color(0xFF00E5C0), fontWeight: FontWeight.bold, fontSize: 15),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: txtPrimary)),
-                const SizedBox(height: 2),
-                Text(plan, style: TextStyle(color: txtSecondary, fontSize: 12)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFF00E5C0).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '₹${amount.toStringAsFixed(0)}',
-              style: const TextStyle(
-                color: Color(0xFF00E5C0),
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
