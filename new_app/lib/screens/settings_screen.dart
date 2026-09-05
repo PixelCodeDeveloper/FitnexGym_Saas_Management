@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/gym.dart';
 import '../services/auth_service.dart';
 import '../services/db_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/input_validator.dart';
 import '../../main.dart';
+import 'support/help_support_screen.dart';
+import 'legal/privacy_policy_screen.dart';
+import 'legal/terms_conditions_screen.dart';
+import 'forms/edit_gym_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -42,17 +44,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _showEditGymModal() {
+  Future<void> _openEditGymScreen() async {
     if (_gym == null) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _EditGymForm(
-        currentGym: _gym!,
-        onGymUpdated: (g) => setState(() => _gym = g),
+    final updated = await Navigator.push<Gym>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditGymScreen(currentGym: _gym!),
       ),
     );
+    if (updated != null) {
+      setState(() => _gym = updated);
+    }
   }
 
   Future<void> _handleLogout() async {
@@ -184,7 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       _sectionLabel('GYM PROFILE', muted),
                       GestureDetector(
-                        onTap: _showEditGymModal,
+                        onTap: _openEditGymScreen,
                         child: const Text('Edit', style: TextStyle(fontSize: 13, color: activeCyan, fontWeight: FontWeight.bold)),
                       ),
                     ],
@@ -192,15 +194,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 8),
                   Column(
                     children: [
-                      _tile(Icons.fitness_center_rounded, 'Gym Name',     _gym?.name ?? 'Not set',           isDark, txt, txt2, muted, onTap: _showEditGymModal),
+                      _tile(Icons.fitness_center_rounded, 'Gym Name',     _gym?.name ?? 'Not set',           isDark, txt, txt2, muted, onTap: _openEditGymScreen),
                       Divider(height: 1, color: border),
-                      _tile(Icons.person_outline_rounded,  'Owner Name',    _gym?.ownerName ?? 'Not configured', isDark, txt, txt2, muted, onTap: _showEditGymModal),
+                      _tile(Icons.person_outline_rounded,  'Owner Name',    _gym?.ownerName ?? 'Not configured', isDark, txt, txt2, muted, onTap: _openEditGymScreen),
                       Divider(height: 1, color: border),
-                      _tile(Icons.location_on_outlined,   'Address',      _gym?.address ?? 'Not configured', isDark, txt, txt2, muted, onTap: _showEditGymModal),
+                      _tile(Icons.location_on_outlined,   'Address',      _gym?.address ?? 'Not configured', isDark, txt, txt2, muted, onTap: _openEditGymScreen),
                       Divider(height: 1, color: border),
-                      _tile(Icons.phone_outlined,          'Phone',       _gym?.phone != null ? '+91 ${_gym!.phone}' : 'Not configured', isDark, txt, txt2, muted, onTap: _showEditGymModal),
+                      _tile(Icons.phone_outlined,          'Phone',       _gym?.phone != null ? '+91 ${_gym!.phone}' : 'Not configured', isDark, txt, txt2, muted, onTap: _openEditGymScreen),
                       Divider(height: 1, color: border),
                       _tile(Icons.currency_rupee_rounded,  'Currency',    _gym?.currency ?? 'INR (₹)',        isDark, txt, txt2, muted),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+                  Divider(height: 1, color: border),
+                  const SizedBox(height: 20),
+
+                  // ── Help & Legal ──
+                  _sectionLabel('HELP & LEGAL', muted),
+                  const SizedBox(height: 8),
+                  Column(
+                    children: [
+                      _tile(
+                        Icons.headset_mic_rounded,
+                        'Help & Support',
+                        'FAQs, WhatsApp & helpline support',
+                        isDark, txt, txt2, muted,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+                        ),
+                      ),
+                      Divider(height: 1, color: border),
+                      _tile(
+                        Icons.privacy_tip_outlined,
+                        'Privacy Policy',
+                        'How we protect your gym & member data',
+                        isDark, txt, txt2, muted,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                        ),
+                      ),
+                      Divider(height: 1, color: border),
+                      _tile(
+                        Icons.gavel_rounded,
+                        'Terms & Conditions',
+                        'SaaS service agreement & usage terms',
+                        isDark, txt, txt2, muted,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TermsConditionsScreen()),
+                        ),
+                      ),
+                      Divider(height: 1, color: border),
+                      _tile(
+                        Icons.info_outline_rounded,
+                        'About Fitnex',
+                        'v1.2.0 (Build 2026.09)',
+                        isDark, txt, txt2, muted,
+                      ),
                     ],
                   ),
 
@@ -254,173 +307,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: onTap != null
           ? Icon(Icons.chevron_right_rounded, color: muted, size: 20)
           : null,
-    );
-  }
-}
-
-// ─────────── Edit Gym Bottom Sheet ───────────
-
-class _EditGymForm extends StatefulWidget {
-  final Gym currentGym;
-  final Function(Gym) onGymUpdated;
-  const _EditGymForm({required this.currentGym, required this.onGymUpdated});
-
-  @override
-  State<_EditGymForm> createState() => _EditGymFormState();
-}
-
-class _EditGymFormState extends State<_EditGymForm> {
-  final _formKey    = GlobalKey<FormState>();
-  late final TextEditingController _nameCtrl;
-  late final TextEditingController _ownerNameCtrl;
-  late final TextEditingController _addressCtrl;
-  late final TextEditingController _phoneCtrl;
-  bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameCtrl      = TextEditingController(text: widget.currentGym.name);
-    _ownerNameCtrl = TextEditingController(text: widget.currentGym.ownerName ?? '');
-    _addressCtrl   = TextEditingController(text: widget.currentGym.address ?? '');
-    _phoneCtrl     = TextEditingController(text: widget.currentGym.phone ?? '');
-  }
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _ownerNameCtrl.dispose();
-    _addressCtrl.dispose();
-    _phoneCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      final updated = Gym(
-        id: widget.currentGym.id,
-        ownerId: widget.currentGym.ownerId,
-        name: _nameCtrl.text.trim(),
-        ownerName: _ownerNameCtrl.text.trim().isNotEmpty ? _ownerNameCtrl.text.trim() : null,
-        address: _addressCtrl.text.trim().isNotEmpty ? _addressCtrl.text.trim() : null,
-        phone: InputValidator.sanitizePhone(_phoneCtrl.text),
-        currency: widget.currentGym.currency,
-        createdAt: widget.currentGym.createdAt,
-      );
-      final saved = await DbService.createGym(updated);
-      widget.onGymUpdated(saved);
-      if (mounted) Navigator.pop(context);
-    } catch (_) {
-      // Optimistic update
-      final updated = Gym(
-        id: widget.currentGym.id,
-        ownerId: widget.currentGym.ownerId,
-        name: _nameCtrl.text.trim(),
-        ownerName: _ownerNameCtrl.text.trim().isNotEmpty ? _ownerNameCtrl.text.trim() : null,
-        address: _addressCtrl.text.trim().isNotEmpty ? _addressCtrl.text.trim() : null,
-        phone: InputValidator.sanitizePhone(_phoneCtrl.text),
-        currency: widget.currentGym.currency,
-        createdAt: widget.currentGym.createdAt,
-      );
-      widget.onGymUpdated(updated);
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark  = Theme.of(context).brightness == Brightness.dark;
-    final sheetBg = isDark ? AppTheme.darkSurface : AppTheme.lightSurface;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: sheetBg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        top: 24,
-        left: 20,
-        right: 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text('Edit Gym Profile', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _nameCtrl,
-                validator: InputValidator.validateName,
-                decoration: const InputDecoration(
-                  labelText: 'Gym Name *',
-                  prefixIcon: Icon(Icons.fitness_center_rounded),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _ownerNameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Owner Name',
-                  prefixIcon: Icon(Icons.person_outline_rounded),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _addressCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Address',
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _phoneCtrl,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
-                ],
-                validator: InputValidator.validatePhone,
-                decoration: const InputDecoration(
-                  labelText: 'Contact Phone *',
-                  prefixText: '+91 ',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _submit,
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15)),
-                  child: _isSaving
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Update Gym Profile', style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
