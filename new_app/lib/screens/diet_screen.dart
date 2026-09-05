@@ -186,7 +186,7 @@ class _DietScreenState extends State<DietScreen> {
                       Text('Assign Plan to Member', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: txt)),
                     ]),
                     const SizedBox(height: 6),
-                    Text('Customize and set review date for member assignment', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                    Text('Customize and set review date for member assignment', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : const Color(0xFF475569))),
                     const SizedBox(height: 16),
 
                     // Select Member
@@ -368,7 +368,7 @@ class _DietScreenState extends State<DietScreen> {
                     Text('Send Diet Plan PDF', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: txt)),
                   ]),
                   const SizedBox(height: 6),
-                  Text('An executive 2-page PDF will be generated and emailed.', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                  Text('An executive 2-page PDF will be generated and emailed.', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : const Color(0xFF475569))),
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameCtrl,
@@ -449,8 +449,8 @@ class _DietScreenState extends State<DietScreen> {
     final bgColor   = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
     final border    = isDark ? const Color(0xFF162234) : const Color(0xFFE2E8F0);
     final txt       = isDark ? Colors.white : const Color(0xFF0F172A);
-    final txt2      = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
-    final muted     = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    final txt2      = isDark ? const Color(0xFF8896B3) : const Color(0xFF334155);
+    final muted     = isDark ? const Color(0xFF64748B) : const Color(0xFF475569);
     final cardBg    = isDark ? const Color(0xFF0F172A) : Colors.white;
     const activeCyan = Color(0xFF00E5C0);
 

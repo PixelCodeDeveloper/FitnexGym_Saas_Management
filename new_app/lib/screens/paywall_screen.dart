@@ -154,8 +154,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
     final isDark   = Theme.of(context).brightness == Brightness.dark;
     final bgColor  = isDark ? const Color(0xFF08101C) : const Color(0xFFF8FAFC);
     final txt      = isDark ? Colors.white : const Color(0xFF0F172A);
-    final txt2     = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
-    final muted    = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    final txt2     = isDark ? const Color(0xFF8896B3) : const Color(0xFF334155);
+    final muted    = isDark ? const Color(0xFF64748B) : const Color(0xFF475569);
     const activeCyan = Color(0xFF00E5C0);
 
     if (_isCheckingStatus) {

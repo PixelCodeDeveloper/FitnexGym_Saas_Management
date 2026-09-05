@@ -9,12 +9,12 @@ class AppTheme {
   static const Color accent      = Color(0xFFFF6B2C); // Vibrant orange
 
   // ── Backward-compatibility aliases (for old screens — light palette values) ──
-  static const Color background    = Color(0xFFF1F5F9);
+  static const Color background    = Color(0xFFF8FAFC);
   static const Color surface       = Color(0xFFFFFFFF);
-  static const Color surfaceAlt    = Color(0xFFF8FAFC);
+  static const Color surfaceAlt    = Color(0xFFF1F5F9);
   static const Color textPrimary   = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color textMuted     = Color(0xFF94A3B8);
+  static const Color textSecondary = Color(0xFF334155);
+  static const Color textMuted     = Color(0xFF475569);
   static const Color divider       = Color(0xFFE2E8F0);
   static const Color border        = Color(0xFFCBD5E1);
 
@@ -27,7 +27,7 @@ class AppTheme {
   static const Color error     = Color(0xFFEF4444);
   static const Color errorBg   = Color(0xFFFEE2E2);
 
-  // ── Dark Palette ──
+  // ── Dark Palette (UNTOUCHED) ──
   static const Color darkBg          = Color(0xFF0A0F1E);
   static const Color darkSurface     = Color(0xFF131929);
   static const Color darkSurfaceAlt  = Color(0xFF1A2236);
@@ -38,15 +38,15 @@ class AppTheme {
   static const Color darkTextSecondary = Color(0xFF8896B3);
   static const Color darkTextMuted   = Color(0xFF4A5975);
 
-  // ── Light Palette ──
-  static const Color lightBg          = Color(0xFFF1F5F9);
+  // ── Light Palette (HIGH CONTRAST & PREMIUM) ──
+  static const Color lightBg          = Color(0xFFF8FAFC);
   static const Color lightSurface     = Color(0xFFFFFFFF);
-  static const Color lightSurfaceAlt  = Color(0xFFF8FAFC);
+  static const Color lightSurfaceAlt  = Color(0xFFF1F5F9);
   static const Color lightBorder      = Color(0xFFCBD5E1);
   static const Color lightDivider     = Color(0xFFE2E8F0);
   static const Color lightTextPrimary = Color(0xFF0F172A);
-  static const Color lightTextSecondary = Color(0xFF64748B);
-  static const Color lightTextMuted   = Color(0xFF94A3B8);
+  static const Color lightTextSecondary = Color(0xFF334155);
+  static const Color lightTextMuted   = Color(0xFF475569);
 
   // ── Gradients ──
   static const LinearGradient primaryGradient = LinearGradient(
@@ -74,9 +74,18 @@ class AppTheme {
         : Colors.white,
     borderRadius: BorderRadius.circular(20),
     border: Border.all(
-      color: isDark ? const Color(0xFF2A3547) : const Color(0xFFE2E8F0),
+      color: isDark ? const Color(0xFF2A3547) : const Color(0xFFCBD5E1),
       width: 1,
     ),
+    boxShadow: isDark
+        ? cardShadow
+        : [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
   );
 
   // ── Neon glow box shadows ──
