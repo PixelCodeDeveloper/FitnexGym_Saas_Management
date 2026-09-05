@@ -7,6 +7,8 @@ import '../theme/app_theme.dart';
 import 'forms/add_member_screen.dart';
 import 'forms/edit_member_screen.dart';
 import 'forms/renew_member_screen.dart';
+import 'member_detail_screen.dart';
+import '../models/diet_plan.dart';
 
 class MembersScreen extends StatefulWidget {
   const MembersScreen({super.key});
@@ -82,6 +84,208 @@ class _MembersScreenState extends State<MembersScreen> {
         if (idx != -1) _members[idx] = updated;
       });
     }
+  }
+
+  Future<void> _openMemberDetailScreen(Member member) async {
+    final updated = await Navigator.push<Member>(
+      context,
+      MaterialPageRoute(builder: (_) => MemberDetailScreen(member: member)),
+    );
+    if (updated != null && mounted) {
+      _loadMembers();
+    }
+  }
+
+  Future<void> _openAssignDietFromList(Member member) async {
+    final templates = await DbService.getDietPlans().catchError((_) => <DietPlan>[]);
+    DietPlan? selectedTemplate = templates.isNotEmpty ? templates.first : null;
+    final titleCtrl = TextEditingController(text: selectedTemplate != null ? '${selectedTemplate.title} (for ${member.name})' : 'Personalized Plan for ${member.name}');
+    final caloriesCtrl = TextEditingController(text: selectedTemplate?.calories ?? '2100 kcal');
+    final proteinCtrl = TextEditingController(text: selectedTemplate?.macros?['protein'] ?? '150g');
+    int reviewDays = 30;
+    bool isAssigning = false;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
+            final txt = isDark ? Colors.white : Colors.black;
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36, height: 4,
+                        decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(children: [
+                      const Icon(Icons.restaurant_menu_rounded, color: AppTheme.primary, size: 24),
+                      const SizedBox(width: 10),
+                      Text('Assign Diet to ${member.name}', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: txt)),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text('Select master template & customize macros for member', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                    const SizedBox(height: 16),
+
+                    if (templates.isNotEmpty) ...[
+                      Text('Master Template', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: txt)),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<DietPlan>(
+                        value: selectedTemplate,
+                        dropdownColor: bg,
+                        style: TextStyle(color: txt, fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.description_outlined),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: templates.map((t) => DropdownMenuItem(value: t, child: Text('${t.title} (${t.CategoryBadge})'))).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() {
+                              selectedTemplate = val;
+                              titleCtrl.text = '${val.title} (for ${member.name})';
+                              caloriesCtrl.text = val.calories;
+                              proteinCtrl.text = val.macros?['protein'] ?? '150g';
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Assigned Title',
+                        prefixIcon: const Icon(Icons.edit_note_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    Row(children: [
+                      Expanded(
+                        child: TextField(
+                          controller: caloriesCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Calories Target',
+                            prefixIcon: const Icon(Icons.local_fire_department_rounded, color: AppTheme.warning),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: proteinCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Protein Target',
+                            prefixIcon: const Icon(Icons.fitness_center_rounded, color: AppTheme.primary),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ]),
+
+                    const SizedBox(height: 14),
+
+                    Row(children: [
+                      Text('Review Period: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: txt)),
+                      const Spacer(),
+                      ChoiceChip(
+                        label: const Text('14 Days'),
+                        selected: reviewDays == 14,
+                        onSelected: (_) => setModalState(() => reviewDays = 14),
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('30 Days'),
+                        selected: reviewDays == 30,
+                        onSelected: (_) => setModalState(() => reviewDays = 30),
+                      ),
+                    ]),
+
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: isAssigning
+                            ? null
+                            : () async {
+                                setModalState(() => isAssigning = true);
+                                try {
+                                  final payload = {
+                                    'member_id': member.id,
+                                    'template_id': selectedTemplate?.id.isNotEmpty == true ? selectedTemplate?.id : null,
+                                    'custom_title': titleCtrl.text.trim(),
+                                    'category': selectedTemplate?.category ?? 'veg',
+                                    'goal_tag': selectedTemplate?.goalTag ?? 'Fat Loss',
+                                    'calories': caloriesCtrl.text.trim(),
+                                    'macros': {
+                                      'protein': proteinCtrl.text.trim(),
+                                    },
+                                    'water_intake': selectedTemplate?.waterIntake ?? '3.5 L/day',
+                                    'meals': selectedTemplate?.meals ?? {},
+                                    'notes': selectedTemplate?.notes,
+                                    'start_date': DateTime.now().toIso8601String(),
+                                    'review_date': DateTime.now().add(Duration(days: reviewDays)).toIso8601String(),
+                                  };
+                                  final assigned = await DbService.assignDietPlanToMember(payload);
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  if (mounted && assigned != null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Assigned "${assigned.customTitle}" to ${member.name}! 🎉')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to assign diet: $e')));
+                                } finally {
+                                  if (ctx.mounted) setModalState(() => isAssigning = false);
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: isAssigning
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Icon(Icons.check_circle_rounded),
+                        label: Text(isAssigning ? 'Assigning...' : 'Confirm Diet Assignment', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _openRenewScreen(Member member) async {
@@ -541,103 +745,112 @@ class _MembersScreenState extends State<MembersScreen> {
     final expStr       = DateFormat('dd MMM yyyy').format(m.subscriptionEnd);
     const activeCyan   = Color(0xFF00E5C0);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Avatar
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: activeCyan.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    initials.isEmpty ? 'M' : initials,
-                    style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 16),
+    return InkWell(
+      onTap: () => _openMemberDetailScreen(m),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                // Avatar
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: activeCyan.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials.isEmpty ? 'M' : initials,
+                      style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            m.name,
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt),
-                            overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              m.name,
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: txt),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(statusIcon, size: 10, color: statusColor),
+                                const SizedBox(width: 3),
+                                Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(statusIcon, size: 10, color: statusColor),
-                              const SizedBox(width: 3),
-                              Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text('+91 ${m.phone}', style: TextStyle(color: txt2, fontSize: 12)),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text('+91 ${m.phone}', style: TextStyle(color: txt2, fontSize: 12)),
+                    ],
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 20, color: activeCyan),
-                tooltip: 'Edit Member',
-                onPressed: () => _openEditMemberScreen(m),
-              ),
-              IconButton(
-                icon: Icon(Icons.delete_outline_rounded, size: 20, color: const Color(0xFFEF4444).withValues(alpha: 0.8)),
-                tooltip: 'Delete Member',
-                onPressed: () => _confirmDelete(m),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.calendar_today_rounded, size: 12, color: muted),
-              const SizedBox(width: 5),
-              Text('Exp: $expStr', style: TextStyle(color: txt2, fontSize: 12)),
-              if (daysLeft >= 0) ...[
-                const SizedBox(width: 8),
-                Text('• $daysLeft days left', style: TextStyle(color: _statusColor(m.status), fontSize: 11, fontWeight: FontWeight.w600)),
+                IconButton(
+                  icon: const Icon(Icons.visibility_outlined, size: 20, color: activeCyan),
+                  tooltip: 'View Member Details',
+                  onPressed: () => _openMemberDetailScreen(m),
+                ),
+                IconButton(
+                  icon: Icon(Icons.edit_outlined, size: 20, color: txt2),
+                  tooltip: 'Edit Member',
+                  onPressed: () => _openEditMemberScreen(m),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete_outline_rounded, size: 20, color: const Color(0xFFEF4444).withValues(alpha: 0.8)),
+                  tooltip: 'Delete Member',
+                  onPressed: () => _confirmDelete(m),
+                ),
               ],
-              const Spacer(),
-              Text('₹${m.amountPaid.toStringAsFixed(0)}', style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _actionChip(Icons.sms_outlined, 'SMS', const Color(0xFFFF6B2C), () => _sendTwilioSMS(m)),
-              const SizedBox(width: 6),
-              _actionChip(Icons.chat_rounded, 'WhatsApp', const Color(0xFF22C55E), () => _showWhatsAppOptions(m)),
-              const SizedBox(width: 6),
-              _actionChip(Icons.picture_as_pdf_rounded, 'PDF / Email', const Color(0xFF0EA5E9), () => _showEmailOptions(m)),
-              const SizedBox(width: 6),
-              _actionChip(Icons.autorenew_rounded, 'Renew', activeCyan, () => _openRenewScreen(m)),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.calendar_today_rounded, size: 12, color: muted),
+                const SizedBox(width: 5),
+                Text('Exp: $expStr', style: TextStyle(color: txt2, fontSize: 12)),
+                if (daysLeft >= 0) ...[
+                  const SizedBox(width: 8),
+                  Text('• $daysLeft days left', style: TextStyle(color: _statusColor(m.status), fontSize: 11, fontWeight: FontWeight.w600)),
+                ],
+                const Spacer(),
+                Text('₹${m.amountPaid.toStringAsFixed(0)}', style: const TextStyle(color: activeCyan, fontWeight: FontWeight.bold, fontSize: 13)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _actionChip(Icons.restaurant_menu_rounded, 'Diet', activeCyan, () => _openAssignDietFromList(m)),
+                const SizedBox(width: 6),
+                _actionChip(Icons.chat_rounded, 'WhatsApp', const Color(0xFF22C55E), () => _showWhatsAppOptions(m)),
+                const SizedBox(width: 6),
+                _actionChip(Icons.picture_as_pdf_rounded, 'PDF / Email', const Color(0xFF0EA5E9), () => _showEmailOptions(m)),
+                const SizedBox(width: 6),
+                _actionChip(Icons.autorenew_rounded, 'Renew', const Color(0xFF8B5CF6), () => _openRenewScreen(m)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
