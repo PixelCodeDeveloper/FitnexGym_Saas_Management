@@ -7,7 +7,8 @@ import '../../theme/app_theme.dart';
 import '../../utils/input_validator.dart';
 
 class AddDietPlanScreen extends StatefulWidget {
-  const AddDietPlanScreen({super.key});
+  final DietPlan? planToEdit;
+  const AddDietPlanScreen({super.key, this.planToEdit});
 
   @override
   State<AddDietPlanScreen> createState() => _AddDietPlanScreenState();
@@ -44,6 +45,36 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
     'Maintenance',
     'General Fitness',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.planToEdit != null) {
+      final p = widget.planToEdit!;
+      _titleController.text = p.title;
+      _caloriesController.text = p.calories.replaceAll(RegExp(r'[^\d]'), '');
+      _proteinController.text = (p.macros?['protein'] ?? '150').toString().replaceAll(RegExp(r'[^\d]'), '');
+      _carbsController.text = (p.macros?['carbs'] ?? '200').toString().replaceAll(RegExp(r'[^\d]'), '');
+      _fatsController.text = (p.macros?['fats'] ?? '50').toString().replaceAll(RegExp(r'[^\d]'), '');
+      _waterController.text = (p.waterIntake ?? '3.5').replaceAll(RegExp(r'[^\d\.]'), '');
+      _notesController.text = p.notes ?? '';
+
+      _earlyMorningCtrl.text = p.meals['early_morning'] ?? '';
+      _breakfastCtrl.text    = p.meals['breakfast'] ?? '';
+      _midMorningCtrl.text   = p.meals['mid_morning'] ?? '';
+      _lunchCtrl.text        = p.meals['lunch'] ?? '';
+      _postWorkoutCtrl.text  = p.meals['post_workout'] ?? '';
+      _dinnerCtrl.text       = p.meals['dinner'] ?? '';
+      _bedtimeCtrl.text      = p.meals['bedtime'] ?? '';
+
+      if (['veg', 'nonveg', 'egg', 'vegan'].contains(p.category.toLowerCase())) {
+        _selectedCategory = p.category.toLowerCase();
+      }
+      if (p.goalTag != null && _goals.contains(p.goalTag)) {
+        _selectedGoal = p.goalTag!;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -96,29 +127,46 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
           ? '${_waterController.text.trim()} Liters/day'
           : '3.5 - 4.0 Liters/day';
 
-      final plan = DietPlan(
-        id: '',
-        gymId: gymId,
-        title: _titleController.text.trim(),
-        type: _selectedCategory,
-        category: _selectedCategory,
-        goalTag: _selectedGoal,
-        calories: '${_caloriesController.text.trim()} kcal',
-        macros: macrosMap.isNotEmpty ? macrosMap : null,
-        waterIntake: waterText,
-        notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
-        items: items,
-        meals: mealsMap,
-        createdAt: now,
-      );
+      if (widget.planToEdit != null) {
+        final updates = {
+          'title': _titleController.text.trim(),
+          'type': _selectedCategory,
+          'category': _selectedCategory,
+          'goal_tag': _selectedGoal,
+          'calories': '${_caloriesController.text.trim()} kcal',
+          'macros': macrosMap.isNotEmpty ? macrosMap : null,
+          'water_intake': waterText,
+          'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+          'items': items,
+          'meals': mealsMap,
+        };
+        final updated = await DbService.updateDietPlan(widget.planToEdit!.id, updates);
+        if (mounted) Navigator.pop(context, updated);
+      } else {
+        final plan = DietPlan(
+          id: '',
+          gymId: gymId,
+          title: _titleController.text.trim(),
+          type: _selectedCategory,
+          category: _selectedCategory,
+          goalTag: _selectedGoal,
+          calories: '${_caloriesController.text.trim()} kcal',
+          macros: macrosMap.isNotEmpty ? macrosMap : null,
+          waterIntake: waterText,
+          notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+          items: items,
+          meals: mealsMap,
+          createdAt: now,
+        );
 
-      final created = await DbService.addDietPlan(plan);
-      if (mounted) Navigator.pop(context, created);
+        final created = await DbService.addDietPlan(plan);
+        if (mounted) Navigator.pop(context, created);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not save diet plan: $e'),
+            content: Text('Failed to save diet plan: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -157,7 +205,10 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
       appBar: AppBar(
         backgroundColor: barBg,
         surfaceTintColor: Colors.transparent,
-        title: Text('Create Master Diet Template', style: TextStyle(color: txt, fontWeight: FontWeight.w700, fontSize: 17)),
+        title: Text(
+          widget.planToEdit != null ? 'Edit Diet Template' : 'Create Master Diet Template',
+          style: TextStyle(color: txt, fontWeight: FontWeight.w700, fontSize: 17),
+        ),
         iconTheme: IconThemeData(color: txt),
         centerTitle: false,
         elevation: 0,
@@ -433,14 +484,17 @@ class _AddDietPlanScreenState extends State<AddDietPlanScreen> {
                   ),
                   child: _isSaving
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Row(
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.save_rounded, color: Colors.white, size: 20),
-                            SizedBox(width: 8),
-                            Text('Save Master Diet Template', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                            const Icon(Icons.save_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              widget.planToEdit != null ? 'Save Template Changes' : 'Save Master Diet Template',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
                           ],
                         ),
                 ),

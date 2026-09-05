@@ -835,7 +835,7 @@ class _DietScreenState extends State<DietScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        _openEditDietPlanDialog(plan);
+                        _openEditDietPlanScreen(plan);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3B82F6),
@@ -873,270 +873,26 @@ class _DietScreenState extends State<DietScreen> {
     );
   }
 
-  Future<void> _openEditDietPlanDialog(DietPlan plan) async {
-    final titleCtrl    = TextEditingController(text: plan.title);
-    final caloriesCtrl = TextEditingController(text: plan.calories.replaceAll(RegExp(r'[^\d]'), ''));
-    final proteinCtrl  = TextEditingController(text: (plan.macros?['protein'] ?? '150g').replaceAll(RegExp(r'[^\d]'), ''));
-    final carbsCtrl    = TextEditingController(text: (plan.macros?['carbs'] ?? '200g').replaceAll(RegExp(r'[^\d]'), ''));
-    final fatsCtrl     = TextEditingController(text: (plan.macros?['fats'] ?? '50g').replaceAll(RegExp(r'[^\d]'), ''));
-    final waterCtrl    = TextEditingController(text: (plan.waterIntake ?? '3.5').replaceAll(RegExp(r'[^\d\.]'), ''));
-    final notesCtrl    = TextEditingController(text: plan.notes ?? '');
-
-    final earlyMorningCtrl = TextEditingController(text: plan.meals['early_morning'] ?? '');
-    final breakfastCtrl    = TextEditingController(text: plan.meals['breakfast'] ?? '');
-    final midMorningCtrl   = TextEditingController(text: plan.meals['mid_morning'] ?? '');
-    final lunchCtrl        = TextEditingController(text: plan.meals['lunch'] ?? '');
-    final postWorkoutCtrl  = TextEditingController(text: plan.meals['post_workout'] ?? '');
-    final dinnerCtrl       = TextEditingController(text: plan.meals['dinner'] ?? '');
-    final bedtimeCtrl      = TextEditingController(text: plan.meals['bedtime'] ?? '');
-
-    String selectedCategory = plan.category.toLowerCase();
-    String selectedGoal = plan.goalTag ?? 'Fat Loss';
-    bool isSaving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
-            final txt = isDark ? Colors.white : Colors.black;
-
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.88,
-              padding: EdgeInsets.only(
-                left: 20, right: 20, top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36, height: 4,
-                      decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.edit_note_rounded, color: AppTheme.primary, size: 24),
-                          const SizedBox(width: 10),
-                          Text('Edit Diet Template', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: txt)),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextField(
-                            controller: titleCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Template Title *',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<String>(
-                                  value: ['veg', 'nonveg', 'egg', 'vegan'].contains(selectedCategory) ? selectedCategory : 'veg',
-                                  dropdownColor: bg,
-                                  style: TextStyle(color: txt, fontWeight: FontWeight.bold),
-                                  decoration: InputDecoration(
-                                    labelText: 'Category',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(value: 'veg', child: Text('🥗 Pure Veg')),
-                                    DropdownMenuItem(value: 'egg', child: Text('🥚 Eggetarian')),
-                                    DropdownMenuItem(value: 'nonveg', child: Text('🍗 Non-Veg')),
-                                    DropdownMenuItem(value: 'vegan', child: Text('🌱 Vegan')),
-                                  ],
-                                  onChanged: (val) {
-                                    if (val != null) setModalState(() => selectedCategory = val);
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TextField(
-                                  controller: caloriesCtrl,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Calories (kcal)',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: proteinCtrl,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Protein (g)',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: TextField(
-                                  controller: carbsCtrl,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Carbs (g)',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: TextField(
-                                  controller: fatsCtrl,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Fats (g)',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Text('Meal Schedule', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: txt)),
-                          const SizedBox(height: 10),
-                          _mealSlotField('🌅 Early Morning', earlyMorningCtrl),
-                          _mealSlotField('🍳 Breakfast', breakfastCtrl),
-                          _mealSlotField('🍎 Mid-Morning', midMorningCtrl),
-                          _mealSlotField('🥗 Lunch', lunchCtrl),
-                          _mealSlotField('💪 Post-Workout', postWorkoutCtrl),
-                          _mealSlotField('🍲 Dinner', dinnerCtrl),
-                          _mealSlotField('🥛 Bedtime', bedtimeCtrl),
-                          const SizedBox(height: 14),
-                          TextField(
-                            controller: notesCtrl,
-                            maxLines: 2,
-                            decoration: InputDecoration(
-                              labelText: 'Notes / Hydration Advice',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: isSaving
-                          ? null
-                          : () async {
-                              final title = titleCtrl.text.trim();
-                              if (title.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a template title')));
-                                return;
-                              }
-                              setModalState(() => isSaving = true);
-                              try {
-                                final mealsMap = <String, String>{};
-                                if (earlyMorningCtrl.text.trim().isNotEmpty) mealsMap['early_morning'] = earlyMorningCtrl.text.trim();
-                                if (breakfastCtrl.text.trim().isNotEmpty) mealsMap['breakfast'] = breakfastCtrl.text.trim();
-                                if (midMorningCtrl.text.trim().isNotEmpty) mealsMap['mid_morning'] = midMorningCtrl.text.trim();
-                                if (lunchCtrl.text.trim().isNotEmpty) mealsMap['lunch'] = lunchCtrl.text.trim();
-                                if (postWorkoutCtrl.text.trim().isNotEmpty) mealsMap['post_workout'] = postWorkoutCtrl.text.trim();
-                                if (dinnerCtrl.text.trim().isNotEmpty) mealsMap['dinner'] = dinnerCtrl.text.trim();
-                                if (bedtimeCtrl.text.trim().isNotEmpty) mealsMap['bedtime'] = bedtimeCtrl.text.trim();
-
-                                final updates = {
-                                  'title': title,
-                                  'type': selectedCategory,
-                                  'category': selectedCategory,
-                                  'goal_tag': selectedGoal,
-                                  'calories': '${caloriesCtrl.text.trim()} kcal',
-                                  'macros': {
-                                    'protein': '${proteinCtrl.text.trim()}g',
-                                    'carbs': '${carbsCtrl.text.trim()}g',
-                                    'fats': '${fatsCtrl.text.trim()}g',
-                                  },
-                                  'water_intake': '${waterCtrl.text.trim()}L',
-                                  'notes': notesCtrl.text.trim(),
-                                  'meals': mealsMap,
-                                };
-
-                                final updatedPlan = await DbService.updateDietPlan(plan.id, updates);
-                                final idx = _plans.indexWhere((p) => p.id == plan.id);
-                                if (idx != -1) {
-                                  setState(() => _plans[idx] = updatedPlan);
-                                }
-                                if (ctx.mounted) Navigator.pop(ctx);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Updated "${updatedPlan.title}" successfully! 🎉')));
-                                }
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update template: $e')));
-                              } finally {
-                                if (ctx.mounted) setModalState(() => isSaving = false);
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      icon: isSaving
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Icon(Icons.check_circle_rounded),
-                      label: Text(isSaving ? 'Saving Changes...' : 'Save Template Changes', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _mealSlotField(String label, TextEditingController ctrl) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TextField(
-        controller: ctrl,
-        decoration: InputDecoration(
-          labelText: label,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        ),
+  Future<void> _openEditDietPlanScreen(DietPlan plan) async {
+    final updatedPlan = await Navigator.push<DietPlan>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddDietPlanScreen(planToEdit: plan),
       ),
     );
+    if (updatedPlan != null) {
+      final index = _plans.indexWhere((p) => p.id == updatedPlan.id);
+      if (index != -1) {
+        setState(() => _plans[index] = updatedPlan);
+      } else {
+        _loadData();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Updated "${updatedPlan.title}" successfully! ✏️')),
+        );
+      }
+    }
   }
 
   Widget _dietCard(
@@ -1283,7 +1039,7 @@ class _DietScreenState extends State<DietScreen> {
                 label: 'Edit',
                 icon: Icons.edit_rounded,
                 color: const Color(0xFF3B82F6),
-                onTap: () => _openEditDietPlanDialog(plan),
+                onTap: () => _openEditDietPlanScreen(plan),
               ),
               _actionBtn(
                 label: 'Assign',
