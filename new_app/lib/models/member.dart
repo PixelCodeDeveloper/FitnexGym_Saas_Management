@@ -28,9 +28,38 @@ class Member {
   MemberStatus get status {
     final now = DateTime.now();
     if (subscriptionEnd.isBefore(now)) return MemberStatus.expired;
-    if (subscriptionEnd.difference(now).inDays <= 7)
-      return MemberStatus.expiringSoon;
+    if (subscriptionEnd.difference(now).inDays <= 7) return MemberStatus.expiringSoon;
     return MemberStatus.active;
+  }
+
+  bool get isExpired => status == MemberStatus.expired;
+  bool get isExpiringSoon => status == MemberStatus.expiringSoon;
+  bool get isActive => status == MemberStatus.active;
+
+  int get daysRemaining {
+    final diff = subscriptionEnd.difference(DateTime.now()).inDays;
+    return diff < 0 ? 0 : diff;
+  }
+
+  String get statusText {
+    switch (status) {
+      case MemberStatus.active:
+        return 'Active';
+      case MemberStatus.expiringSoon:
+        return 'Expiring Soon';
+      case MemberStatus.expired:
+        return 'Expired';
+    }
+  }
+
+  String get avatarInitials {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      return parts[0][0].toUpperCase();
+    }
+    return 'M';
   }
 
   factory Member.fromJson(Map<String, dynamic> json) => Member(

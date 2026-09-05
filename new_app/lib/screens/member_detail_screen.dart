@@ -83,13 +83,12 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       return;
     }
     try {
-      final success = await DbService.sendEmailReceipt(
+      final success = await DbService.sendMemberReceiptEmail(
+        memberId: _member.id,
         memberEmail: _member.email!,
-        memberName: _member.name,
-        planName: 'Gym Membership Subscription',
-        startDate: DateFormat('dd MMM yyyy').format(_member.subscriptionStart),
-        endDate: DateFormat('dd MMM yyyy').format(_member.subscriptionEnd),
-        amountPaid: _member.amountPaid.toInt(),
+        amount: _member.amountPaid,
+        startDate: _member.subscriptionStart,
+        endDate: _member.subscriptionEnd,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
