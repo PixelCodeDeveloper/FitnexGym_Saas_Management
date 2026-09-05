@@ -23,9 +23,21 @@ class DbService {
   static final _storage = FlutterSecureStorage();
 
   static final ValueNotifier<int> membersRefreshNotifier = ValueNotifier<int>(0);
+  static final ValueNotifier<int> plansRefreshNotifier = ValueNotifier<int>(0);
+  static final ValueNotifier<int> dietPlansRefreshNotifier = ValueNotifier<int>(0);
+  static final ValueNotifier<int> leadsRefreshNotifier = ValueNotifier<int>(0);
 
   static void notifyMembersChanged() {
     membersRefreshNotifier.value++;
+  }
+  static void notifyPlansChanged() {
+    plansRefreshNotifier.value++;
+  }
+  static void notifyDietPlansChanged() {
+    dietPlansRefreshNotifier.value++;
+  }
+  static void notifyLeadsChanged() {
+    leadsRefreshNotifier.value++;
   }
 
   static Future<Gym?> getGym([String? _]) async {
@@ -127,31 +139,46 @@ class DbService {
   }
   static Future<List<Lead>> getLeads([String? _]) async =>
       _list('/v1/leads', Lead.fromJson);
-  static Future<Lead> addLead(Lead x) async => Lead.fromJson(
-    await ApiClient.post('/v1/leads', x.toJson()) as Map<String, dynamic>,
-  );
+  static Future<Lead> addLead(Lead x) async {
+    final created = Lead.fromJson(
+      await ApiClient.post('/v1/leads', x.toJson()) as Map<String, dynamic>,
+    );
+    notifyLeadsChanged();
+    return created;
+  }
   static Future<void> deleteLead(String id) async {
     try {
       await ApiClient.delete('/v1/leads/$id');
+      notifyLeadsChanged();
     } catch (_) {}
   }
   static Future<List<DietPlan>> getDietPlans([String? _]) async =>
       _list('/v1/diet-plans', DietPlan.fromJson);
-  static Future<DietPlan> addDietPlan(DietPlan x) async => DietPlan.fromJson(
-    await ApiClient.post('/v1/diet-plans', x.toJson()) as Map<String, dynamic>,
-  );
+  static Future<DietPlan> addDietPlan(DietPlan x) async {
+    final created = DietPlan.fromJson(
+      await ApiClient.post('/v1/diet-plans', x.toJson()) as Map<String, dynamic>,
+    );
+    notifyDietPlansChanged();
+    return created;
+  }
   static Future<DietPlan> updateDietPlan(String id, Map<String, dynamic> updates) async {
     final res = await ApiClient.patch('/v1/diet-plans/$id', updates);
-    return DietPlan.fromJson(res as Map<String, dynamic>);
+    final updated = DietPlan.fromJson(res as Map<String, dynamic>);
+    notifyDietPlansChanged();
+    return updated;
   }
   static Future<void> deleteDietPlan(String id) async {
     try {
       await ApiClient.delete('/v1/diet-plans/$id');
+      notifyDietPlansChanged();
     } catch (_) {}
   }
   static Future<MemberDietPlan?> assignDietPlanToMember(Map<String, dynamic> payload) async {
     final res = await ApiClient.post('/v1/diet-plans/assign', payload);
-    if (res is Map<String, dynamic>) return MemberDietPlan.fromJson(res);
+    if (res is Map<String, dynamic>) {
+      notifyDietPlansChanged();
+      return MemberDietPlan.fromJson(res);
+    }
     return null;
   }
   static Future<MemberDietPlan?> getMemberDietPlan(String memberId) async {
@@ -166,10 +193,13 @@ class DbService {
   }
   static Future<List<SubscriptionPlan>> getPlans([String? _]) async =>
       _list('/v1/plans', SubscriptionPlan.fromJson);
-  static Future<SubscriptionPlan> addPlan(SubscriptionPlan x) async =>
-      SubscriptionPlan.fromJson(
-        await ApiClient.post('/v1/plans', x.toJson()) as Map<String, dynamic>,
-      );
+  static Future<SubscriptionPlan> addPlan(SubscriptionPlan x) async {
+    final created = SubscriptionPlan.fromJson(
+      await ApiClient.post('/v1/plans', x.toJson()) as Map<String, dynamic>,
+    );
+    notifyPlansChanged();
+    return created;
+  }
   static Future<List<Payment>> getPayments([String? _]) async =>
       _list('/v1/payments', Payment.fromJson);
   static Future<Payment> recordPayment(Payment x) async => Payment.fromJson(

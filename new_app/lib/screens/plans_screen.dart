@@ -20,6 +20,17 @@ class _PlansScreenState extends State<PlansScreen> {
   void initState() {
     super.initState();
     _loadPlans();
+    DbService.plansRefreshNotifier.addListener(_onPlansChanged);
+  }
+
+  @override
+  void dispose() {
+    DbService.plansRefreshNotifier.removeListener(_onPlansChanged);
+    super.dispose();
+  }
+
+  void _onPlansChanged() {
+    if (mounted) _loadPlans();
   }
 
   Future<void> _loadPlans() async {
@@ -38,7 +49,9 @@ class _PlansScreenState extends State<PlansScreen> {
       context,
       MaterialPageRoute(builder: (_) => const AddPlanScreen()),
     );
-    if (newPlan != null) setState(() => _plans.insert(0, newPlan));
+    if (newPlan != null) {
+      DbService.notifyPlansChanged();
+    }
   }
 
   @override
@@ -55,18 +68,25 @@ class _PlansScreenState extends State<PlansScreen> {
       backgroundColor: bgColor,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: activeCyan, strokeWidth: 2))
-          : _plans.isEmpty
-              ? _emptyState(isDark, border, txt, muted)
-              : RefreshIndicator(
-                  color: activeCyan,
-                  onRefresh: _loadPlans,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                    itemCount: _plans.length,
-                    separatorBuilder: (_, idx) => Divider(height: 1, color: border),
-                    itemBuilder: (context, i) => _planTile(_plans[i], isDark, border, txt, txt2, muted),
-                  ),
-                ),
+          : RefreshIndicator(
+              color: activeCyan,
+              onRefresh: _loadPlans,
+              child: _plans.isEmpty
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.7,
+                        child: Center(child: _emptyState(isDark, border, txt, muted)),
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                      itemCount: _plans.length,
+                      separatorBuilder: (_, idx) => Divider(height: 1, color: border),
+                      itemBuilder: (context, i) => _planTile(_plans[i], isDark, border, txt, txt2, muted),
+                    ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           SubscriptionGuard.checkActive(
