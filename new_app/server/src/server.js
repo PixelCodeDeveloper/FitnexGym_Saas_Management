@@ -684,10 +684,12 @@ app.post('/v1/members/send-receipt', auth, gymContext, requireGym, asyncRoute(as
   if (mailTransporter) {
     try {
       const fromAddress = env.SMTP_FROM || `"Fitnex Billing" <${env.SMTP_USER}>`;
+      const plainText = `Payment Receipt: ${receiptId}\n\nHello ${memberName},\nThank you for your payment of ₹${amount || 0} for ${plan_name || 'Membership Renewal'}.\nYour fee receipt is attached to this email as a PDF document.\n\nReceipt ID: ${receiptId}\nAmount Paid: ₹${amount || 0}\nStatus: PAID\n\nThank you for choosing ${req.gym.name || 'Fitnex Gym'}!`;
       await mailTransporter.sendMail({
         from: fromAddress,
         to: member_email,
         subject: `Payment Receipt: ${receiptId} - ${req.gym.name || 'Fitnex Gym'}`,
+        text: plainText,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
             <h2 style="color: #00C9A7; margin-top: 0;">Payment Receipt</h2>
@@ -734,10 +736,12 @@ app.post('/v1/members/:id/send-expiry-reminder', auth, gymContext, requireGym, a
   if (mailTransporter) {
     try {
       const fromAddress = env.SMTP_FROM || `"Fitnex Gym" <${env.SMTP_USER}>`;
+      const plainText = `Membership Expiry Notice\n\nHello ${m.name},\n${isExpired ? 'Your gym membership has expired.' : `Your gym membership will expire in ${daysDiff} days.`}\n\nExpiry Date: ${endDate.toLocaleDateString('en-IN')}\nGym Contact: ${req.gym.phone || 'Contact Front Desk'}\n\nPlease renew your plan to continue enjoying gym facilities.`;
       await mailTransporter.sendMail({
         from: fromAddress,
         to: targetEmail,
         subject: `Membership Expiry Notice: ${m.name} - ${req.gym.name || 'Fitnex Gym'}`,
+        text: plainText,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
             <h2 style="color: ${isExpired ? '#dc2626' : '#f59e0b'}; margin-top: 0;">${isExpired ? 'Membership Expired' : 'Membership Expiring Soon'}</h2>
