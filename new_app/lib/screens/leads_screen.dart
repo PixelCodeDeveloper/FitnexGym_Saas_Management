@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/lead.dart';
 import '../models/member.dart';
+import '../models/subscription_plan.dart';
+import '../models/payment.dart';
 import '../services/db_service.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -70,26 +72,310 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   Future<void> _convertToMember(Lead lead) async {
-    final gymId = await AuthService.getGymId() ?? 'gym_demo';
-    final now   = DateTime.now();
-    final mem   = Member(
-      id: 'mem_${now.millisecondsSinceEpoch}',
-      gymId: gymId,
-      name: lead.name,
-      phone: lead.phone,
-      subscriptionStart: now,
-      subscriptionEnd: DateTime(now.year, now.month + 1, now.day),
-      amountPaid: 1800.0,
-      createdAt: now,
+    List<SubscriptionPlan> dbPlans = [];
+    try {
+      dbPlans = await DbService.getPlans();
+    } catch (_) {}
+
+    SubscriptionPlan? selectedPlan = dbPlans.isNotEmpty ? dbPlans.first : null;
+    final emailCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController(text: lead.phone);
+    final nameCtrl  = TextEditingController(text: lead.name);
+    final priceCtrl = TextEditingController(text: selectedPlan != null ? selectedPlan.price.toInt().toString() : '1800');
+
+    DateTime startDate = DateTime.now();
+    DateTime endDate   = selectedPlan != null
+        ? startDate.add(Duration(days: selectedPlan.durationDays))
+        : DateTime(startDate.year, startDate.month + 1, startDate.day);
+
+    bool converting = false;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final bg     = isDark ? const Color(0xFF0F172A) : Colors.white;
+            final txt    = isDark ? Colors.white : const Color(0xFF0F172A);
+            final txt2   = isDark ? const Color(0xFF8896B3) : const Color(0xFF64748B);
+            const activeCyan = Color(0xFF00E5C0);
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36, height: 4,
+                        decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(color: activeCyan.withValues(alpha: 0.15), shape: BoxShape.circle),
+                          child: const Icon(Icons.person_add_alt_1_rounded, color: activeCyan, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Convert Lead to Member', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: txt)),
+                            const SizedBox(height: 2),
+                            Text('Assign plan, record fee & register ${lead.name}', style: TextStyle(fontSize: 12, color: txt2)),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Member Name
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Member Full Name *',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Phone & Email
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: phoneCtrl,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              labelText: 'Phone Number *',
+                              prefixIcon: const Icon(Icons.phone_outlined),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: emailCtrl,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              labelText: 'Email Address',
+                              prefixIcon: const Icon(Icons.email_outlined),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Plan Selector
+                    if (dbPlans.isNotEmpty) ...[
+                      Text('Select Membership Plan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: txt)),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<SubscriptionPlan>(
+                        value: selectedPlan,
+                        dropdownColor: bg,
+                        style: TextStyle(color: txt, fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.card_membership_rounded, color: AppTheme.primary),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: dbPlans.map((p) => DropdownMenuItem(value: p, child: Text('${p.name} (₹${p.price.toInt()} / ${p.durationDays}d)'))).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() {
+                              selectedPlan = val;
+                              priceCtrl.text = val.price.toInt().toString();
+                              endDate = startDate.add(Duration(days: val.durationDays));
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    // Payment Amount
+                    TextField(
+                      controller: priceCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Collected Fee Amount (₹) *',
+                        prefixIcon: const Icon(Icons.currency_rupee_rounded, color: AppTheme.success),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Dates
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: startDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                              );
+                              if (picked != null) {
+                                setModalState(() {
+                                  startDate = picked;
+                                  if (selectedPlan != null) {
+                                    endDate = startDate.add(Duration(days: selectedPlan!.durationDays));
+                                  }
+                                });
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: 'Start Date',
+                                prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: Text(DateFormat('dd MMM yyyy').format(startDate), style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: endDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                              );
+                              if (picked != null) {
+                                setModalState(() => endDate = picked);
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: 'Expiry Date',
+                                prefixIcon: const Icon(Icons.event_repeat_rounded, size: 18, color: AppTheme.warning),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: Text(DateFormat('dd MMM yyyy').format(endDate), style: TextStyle(color: txt, fontSize: 13, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Submit Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: converting
+                            ? null
+                            : () async {
+                                final name = nameCtrl.text.trim();
+                                final phone = phoneCtrl.text.trim();
+                                final email = emailCtrl.text.trim();
+                                final amount = double.tryParse(priceCtrl.text.trim()) ?? 0.0;
+
+                                if (name.isEmpty || phone.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in Member Name and Phone Number.')));
+                                  return;
+                                }
+
+                                setModalState(() => converting = true);
+                                try {
+                                  final gymId = await AuthService.getGymId() ?? 'gym_demo';
+                                  final now   = DateTime.now();
+
+                                  final newMember = Member(
+                                    id: 'mem_${now.millisecondsSinceEpoch}',
+                                    gymId: gymId,
+                                    name: name,
+                                    phone: phone,
+                                    email: email.isNotEmpty ? email : null,
+                                    planId: selectedPlan?.id,
+                                    subscriptionStart: startDate,
+                                    subscriptionEnd: endDate,
+                                    amountPaid: amount,
+                                    createdAt: now,
+                                  );
+
+                                  final createdMember = await DbService.addMember(newMember);
+
+                                  // Also log payment transaction
+                                  if (amount > 0) {
+                                    await DbService.recordPayment(Payment(
+                                      id: '',
+                                      gymId: gymId,
+                                      memberId: createdMember.id,
+                                      memberName: name,
+                                      amount: amount,
+                                      planName: selectedPlan?.name ?? 'Initial Joining Fee',
+                                      paidAt: now,
+                                    )).catchError((_) => Payment(id: '', gymId: gymId, memberId: createdMember.id, amount: amount, paidAt: now));
+                                  }
+
+                                  // Remove lead
+                                  await DbService.deleteLead(lead.id).catchError((_) {});
+
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  if (mounted) {
+                                    setState(() => _leads.removeWhere((l) => l.id == lead.id));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Converted ${name} to Member! ₹${amount.toInt()} payment recorded. 🎉'),
+                                        backgroundColor: AppTheme.success,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Conversion failed: $e')));
+                                } finally {
+                                  if (ctx.mounted) setModalState(() => converting = false);
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: activeCyan,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: converting
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                            : const Icon(Icons.check_circle_rounded),
+                        label: Text(converting ? 'Converting...' : 'Confirm Conversion & Record Fee', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
-    await DbService.addMember(mem);
-    await DbService.deleteLead(lead.id);
-    setState(() => _leads.removeWhere((l) => l.id == lead.id));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${lead.name} converted to Member! 🎉'), backgroundColor: AppTheme.success),
-      );
-    }
   }
 
   void _confirmDelete(Lead lead) {
