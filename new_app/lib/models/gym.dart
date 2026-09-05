@@ -3,6 +3,7 @@ class Gym {
   final String ownerId;
   final String name;
   final String? ownerName;
+  final String? email;
   final String? address;
   final String? phone;
   final String currency;
@@ -13,6 +14,7 @@ class Gym {
     required this.ownerId,
     required this.name,
     this.ownerName,
+    this.email,
     this.address,
     this.phone,
     this.currency = 'INR',
@@ -24,6 +26,7 @@ class Gym {
     ownerId: json['owner_id'] ?? 'owner_default',
     name: json['name'],
     ownerName: json['owner_name'],
+    email: json['email'],
     address: json['address'],
     phone: json['phone'],
     currency: json['currency'] ?? 'INR',
@@ -34,6 +37,7 @@ class Gym {
     'owner_id': ownerId,
     'name': name,
     'owner_name': ownerName,
+    'email': email,
     'address': address,
     'phone': phone,
     'currency': currency,

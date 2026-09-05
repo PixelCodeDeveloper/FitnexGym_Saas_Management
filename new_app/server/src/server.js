@@ -61,6 +61,7 @@ db.query(`
   );
   CREATE INDEX IF NOT EXISTS idx_email_otps_email ON email_otps(email);
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS owner_name varchar(120);
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS email varchar(254);
   ALTER TABLE members ADD COLUMN IF NOT EXISTS email varchar(254);
 `).catch((err) => console.error('[DB] email_otps table check warning:', err.message));
 
@@ -99,7 +100,7 @@ const verifyOtpSchema = z.object({
   purpose: z.enum(['signup', 'login']).default('signup'),
 });
 
-const gymSchema = z.object({ name: z.string().trim().min(2).max(120), owner_name: z.string().trim().max(120).nullable().optional(), address: z.string().trim().max(500).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(), currency: z.literal('INR').default('INR') });
+const gymSchema = z.object({ name: z.string().trim().min(2).max(120), owner_name: z.string().trim().max(120).nullable().optional(), email: z.preprocess((val) => (val === '' || val === undefined ? null : val), z.string().trim().email().max(254).nullable().optional()), address: z.string().trim().max(500).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(), currency: z.literal('INR').default('INR') });
 const memberSchema = z.object({
   name: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(6).max(30),
@@ -439,15 +440,15 @@ app.post('/v1/gym', auth, gymContext, asyncRoute(async (req, res) => {
   const g = parse(gymSchema, req.body);
   if (req.gym) {
     const { rows } = await db.query(
-      'UPDATE gyms SET name = $1, owner_name = $2, address = $3, phone = $4 WHERE id = $5 RETURNING *',
-      [g.name, g.owner_name || null, g.address || null, g.phone || null, req.gym.id]
+      'UPDATE gyms SET name = $1, owner_name = $2, email = $3, address = $4, phone = $5 WHERE id = $6 RETURNING *',
+      [g.name, g.owner_name || null, g.email || null, g.address || null, g.phone || null, req.gym.id]
     );
     await audit(req, 'gym.update', 'gym', rows[0].id);
     return res.json(rows[0]);
   }
   const { rows } = await db.query(
-    'INSERT INTO gyms (owner_id, name, owner_name, address, phone, currency) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-    [req.user.id, g.name, g.owner_name || null, g.address || null, g.phone || null, g.currency]
+    'INSERT INTO gyms (owner_id, name, owner_name, email, address, phone, currency) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+    [req.user.id, g.name, g.owner_name || null, g.email || null, g.address || null, g.phone || null, g.currency]
   );
   await audit(req, 'gym.create', 'gym', rows[0].id);
   res.status(201).json(rows[0]);

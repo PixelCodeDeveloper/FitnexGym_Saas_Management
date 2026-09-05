@@ -16,13 +16,32 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _ownerNameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadDefaultEmail();
+  }
+
+  Future<void> _loadDefaultEmail() async {
+    final email = await AuthService.userEmail;
+    if (email != null && email.isNotEmpty && mounted) {
+      setState(() {
+        _emailController.text = email;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
+    _ownerNameController.dispose();
+    _emailController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -37,6 +56,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         id: '',
         ownerId: userId,
         name: _nameController.text.trim(),
+        ownerName: _ownerNameController.text.trim().isNotEmpty
+            ? _ownerNameController.text.trim()
+            : null,
+        email: _emailController.text.trim().isNotEmpty
+            ? _emailController.text.trim()
+            : null,
         address: _addressController.text.trim().isNotEmpty
             ? _addressController.text.trim()
             : null,
@@ -139,6 +164,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       validator: InputValidator.validateName,
                       style: TextStyle(color: textPrimary),
                       decoration: _inputDecoration('e.g. Iron Fitness Studio', isDark: isDark),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'OWNER NAME *',
+                      style: TextStyle(
+                        color: textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _ownerNameController,
+                      validator: InputValidator.validateName,
+                      style: TextStyle(color: textPrimary),
+                      decoration: _inputDecoration('e.g. Rahul Sharma', isDark: isDark),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'EMAIL ADDRESS *',
+                      style: TextStyle(
+                        color: textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: InputValidator.validateEmail,
+                      style: TextStyle(color: textPrimary),
+                      decoration: _inputDecoration('e.g. owner@fitnexgym.com', isDark: isDark),
                     ),
                     const SizedBox(height: 20),
                     Text(

@@ -15,6 +15,7 @@ import 'auth_service.dart';
 class DbService {
   static const _gymNameKey = 'saved_gym_name';
   static const _gymOwnerNameKey = 'saved_gym_owner_name';
+  static const _gymEmailKey = 'saved_gym_email';
   static const _gymAddressKey = 'saved_gym_address';
   static const _gymPhoneKey = 'saved_gym_phone';
   static const _subExpiryPrefix = 'saved_sub_expiry_';
@@ -30,13 +31,23 @@ class DbService {
   static Future<Gym?> getGym([String? _]) async {
     try {
       final data = await ApiClient.get('/v1/gym');
-      if (data != null) return Gym.fromJson(data as Map<String, dynamic>);
+      if (data != null) {
+        final gym = Gym.fromJson(data as Map<String, dynamic>);
+        await _storage.write(key: _gymNameKey, value: gym.name);
+        if (gym.ownerName != null) await _storage.write(key: _gymOwnerNameKey, value: gym.ownerName!);
+        if (gym.email != null) await _storage.write(key: _gymEmailKey, value: gym.email!);
+        if (gym.address != null) await _storage.write(key: _gymAddressKey, value: gym.address!);
+        if (gym.phone != null) await _storage.write(key: _gymPhoneKey, value: gym.phone!);
+        await AuthService.saveGymId(gym.id);
+        return gym;
+      }
     } catch (_) {}
 
     final name = await _storage.read(key: _gymNameKey);
     if (name == null || name.isEmpty) return null;
 
     final ownerName = await _storage.read(key: _gymOwnerNameKey);
+    final email = await _storage.read(key: _gymEmailKey);
     final address = await _storage.read(key: _gymAddressKey);
     final phone = await _storage.read(key: _gymPhoneKey);
     final gymId = await AuthService.getGymId() ?? 'gym_local';
@@ -47,6 +58,7 @@ class DbService {
       ownerId: ownerId,
       name: name,
       ownerName: ownerName,
+      email: email,
       address: address,
       phone: phone,
       currency: 'INR',
@@ -57,6 +69,7 @@ class DbService {
   static Future<Gym> createGym(Gym gym) async {
     await _storage.write(key: _gymNameKey, value: gym.name);
     if (gym.ownerName != null) await _storage.write(key: _gymOwnerNameKey, value: gym.ownerName!);
+    if (gym.email != null) await _storage.write(key: _gymEmailKey, value: gym.email!);
     if (gym.address != null) await _storage.write(key: _gymAddressKey, value: gym.address!);
     if (gym.phone != null) await _storage.write(key: _gymPhoneKey, value: gym.phone!);
 
@@ -64,11 +77,14 @@ class DbService {
       final res = await ApiClient.post('/v1/gym', {
         'name': gym.name,
         'owner_name': gym.ownerName,
+        'email': gym.email,
         'address': gym.address,
         'phone': gym.phone,
         'currency': gym.currency,
       });
-      return Gym.fromJson(res as Map<String, dynamic>);
+      final created = Gym.fromJson(res as Map<String, dynamic>);
+      await AuthService.saveGymId(created.id);
+      return created;
     } catch (_) {
       final userId = await AuthService.currentUserId ?? 'demo_owner_id';
       final gymId = 'gym_${DateTime.now().millisecondsSinceEpoch}';
@@ -77,6 +93,8 @@ class DbService {
         id: gymId,
         ownerId: userId,
         name: gym.name,
+        ownerName: gym.ownerName,
+        email: gym.email,
         address: gym.address,
         phone: gym.phone,
         currency: gym.currency,
